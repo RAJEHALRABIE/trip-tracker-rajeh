@@ -4,15 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>الإعدادات - Trip Tracker</title>
-  
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#6b4de6">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
   <div id="loading-overlay" class="loading-overlay" style="display: none;">
     <div class="loading-spinner"></div>
     <p>جاري تنفيذ العملية...</p>
@@ -22,80 +19,110 @@
     <a href="index.html" class="header-back-btn">→</a>
     <div class="header-title">
       <h1>الإعدادات</h1>
-      <span>إدارة بيانات التطبيق</span>
+      <span>إدارة بيانات وأهداف التطبيق</span>
     </div>
     <div class="header-logo">
-      <img src="assets/logo.png" alt="Logo">
+      <img src="assets/icons/icon-192.png" alt="شعار التطبيق" width="46" height="46">
     </div>
-  </header
+  </header>
 
   <main class="main-content">
-
+    <!-- الأهداف اليومية -->
     <section class="stats-card settings-card">
       <h2 class="card-title">
-        <img src="assets/icons/settings.png" alt="">
+        <img src="assets/icons/stats-icon.png" alt="أهداف" width="24" height="24">
+        الأهداف اليومية
+      </h2>
+      
+      <div class="setting-item">
+        <label for="income-goal">الهدف المالي اليومي (ريال سعودي)</label>
+        <input type="number" id="income-goal" min="0" step="10" value="300" placeholder="300">
+        
+        <label for="hours-goal">الهدف الزمني اليومي (ساعات)</label>
+        <input type="number" id="hours-goal" min="0" step="0.5" value="8" placeholder="8">
+        
+        <button id="save-goals" class="btn btn-primary" style="margin-top: 16px;">
+          <img src="assets/icons/save.png" alt="حفظ" width="20" height="20">
+          حفظ الأهداف
+        </button>
+      </div>
+    </section>
+
+    <!-- إدارة البيانات -->
+    <section class="stats-card settings-card">
+      <h2 class="card-title">
+        <img src="assets/icons/settings.png" alt="إعدادات" width="24" height="24">
         إدارة البيانات
       </h2>
       
       <div class="setting-item">
         <h3>استيراد بيانات (JSON)</h3>
-        <p>استعادة نسخة احتياطية من بياناتك.</p>
+        <p>استعادة نسخة احتياطية من بياناتك. يجب أن يكون الملف بصيغة JSON متوافقة.</p>
         <button id="import-btn" class="btn btn-primary">
-          <img src="assets/icons/upload.png" alt=""> استيراد ملف
+          <img src="assets/icons/upload.png" alt="استيراد" width="20" height="20">
+          استيراد ملف
         </button>
         <input type="file" id="import-file-input" accept=".json" style="display: none;">
       </div>
 
-      <div class="setting-item">
+      <div class="setting-item" style="border-top: 1px solid var(--border); padding-top: 20px;">
         <h3>مسح كل البيانات (خطر)</h3>
         <p>سيتم حذف جميع الشفتات والرحلات المسجلة نهائياً. لا يمكن التراجع عن هذا الإجراء.</p>
         <button id="delete-all-btn" class="btn btn-danger">
-          <img src="assets/icons/delete.png" alt=""> مسح كل البيانات
+          <img src="assets/icons/delete.png" alt="مسح" width="20" height="20">
+          مسح كل البيانات
         </button>
       </div>
-      
     </section>
 
+    <!-- معلومات التطبيق -->
+    <section class="stats-card settings-card">
+      <h2 class="card-title">
+        <img src="assets/icons/info.png" alt="معلومات" width="24" height="24">
+        معلومات التطبيق
+      </h2>
+      
+      <div class="setting-item">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: center;">
+          <div>
+            <strong>الإصدار</strong>
+            <p>2.0.0</p>
+          </div>
+          <div>
+            <strong>تاريخ التحديث</strong>
+            <p>2024</p>
+          </div>
+        </div>
+        
+        <div style="margin-top: 16px; padding: 16px; background: var(--bg); border-radius: 12px;">
+          <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted);">
+            Trip Tracker - تطبيق مفتوح المصدر لتتبع رحلات السائقين
+          </p>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <!-- شريط التنقل السفلي -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
-      <img src="assets/icons/home.png" alt="">
+      <img src="assets/icons/home.png" alt="الرئيسية" width="26" height="26">
       <span>الرئيسية</span>
     </a>
     <a href="reports.html" class="nav-item">
-      <img src="assets/icons/reports.png" alt="">
+      <img src="assets/icons/reports.png" alt="التقارير" width="26" height="26">
       <span>التقارير</span>
     </a>
     <a href="analytics.html" class="nav-item">
-      <img src="assets/icons/analytics.png" alt="">
+      <img src="assets/icons/analytics.png" alt="التحليل" width="26" height="26">
       <span>تحليل</span>
     </a>
     <a href="settings.html" class="nav-item active">
-      <img src="assets/icons/settings.png" alt="">
+      <img src="assets/icons/settings.png" alt="الإعدادات" width="26" height="26">
       <span>الإعدادات</span>
     </a>
   </nav>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-    
-    // إعدادات Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
-      authDomain: "trip-tracker-rajeh.firebaseapp.com",
-      projectId: "trip-tracker-rajeh",
-      storageBucket: "trip-tracker-rajeh.appspot.com",
-      messagingSenderId: "1025723412931",
-      appId: "1:1025723412931:web:53a9fa6e1a7a5f43a3dbec",
-      measurementId: "G-J1RBF8H0CC"
-    };
-    const app = initializeApp(firebaseConfig);
-    export const db = getFirestore(app);
-  </script>
-
   <script type="module" src="settings.js"></script>
-
 </body>
 </html>

@@ -1,93 +1,103 @@
-import { app } from './login.html'; // استيراد التطبيق المهيأ
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+const CACHE_NAME = 'trip-tracker-v15';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/reports.html',
+  '/analytics.html',
+  '/settings.html',
+  '/style.css',
+  '/app.js',
+  '/reports.js',
+  '/analytics.js',
+  '/settings.js',
+  '/firebase-config.js', // ⬅️ **الإضافة الجديدة الهامة**
+  '/manifest.json',
+  'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap',
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+];
 
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+// جميع الأيقونات الـ 25 (للتأكد من كاش جميع الأصول)
+const allIcons = [
+  'home.png', 'reports.png', 'analytics.png', 'settings.png',
+  'play.png', 'stop.png', 'car.png', 'flag.png', 'time.png',
+  'cash.png', 'distance.png', 'live.png', 'download.png',
+  'edit.png', 'upload.png', 'delete.png', 'search.png',
+  'details.png', 'stats-icon.png', 'global-stats.png', 
+  'target.png', 'save.png', 'pdf.png', 'csv.png',
+  'dollar.png', 'clock.png', 'calendar.png', 'finish-flag.png',
+  'map-pin.png', 'icon-192.png', 'icon-512.png',
+];
+const iconUrls = allIcons.map(icon => `assets/icons/${icon}`);
+urlsToCache.push(...iconUrls);
 
-// تخصيص إعدادات OAuth للمشروع الثاني (trip-tracker-maps-475723)
-// هذا هو السر لدمج المشروعين
-provider.setCustomParameters({
-  'client_id': '1087606954535-0uf57augj1bbt5j5hllg6dop3m5tj9i4.apps.googleusercontent.com'
-  // لا نضع الـ client_secret هنا أبداً، فهو سري ويبقى في الخادم (غير مطلوب للـ Web)
-});
-
-const loginButton = document.getElementById('login-button');
-const loadingSpinner = document.getElementById('loading');
-
-// 1. مراقبة حالة المصادقة
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    // المستخدم مسجل دخوله
-    console.log('المستخدم مسجل:', user.displayName);
-    // توجيه المستخدم إلى الصفحة الرئيسية
-    if (window.location.pathname.endsWith('login.html') || window.location.pathname === '/') {
-      window.location.href = 'index.html';
-    }
-  } else {
-    // المستخدم غير مسجل دخوله
-    console.log('المستخدم غير مسجل');
-    // التأكد من أن المستخدم في صفحة تسجيل الدخول
-    if (!window.location.pathname.endsWith('login.html')) {
-      window.location.href = 'login.html';
-    }
-    loadingSpinner.style.display = 'none';
-  }
-});
-
-// 2. معالج حدث النقر لزر تسجيل الدخول
-if (loginButton) {
-  loginButton.addEventListener('click', () => {
-    loadingSpinner.style.display = 'block';
-    loginButton.style.display = 'none';
-    
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        // تم تسجيل الدخول بنجاح
-        const user = result.user;
-        console.log('تسجيل دخول ناجح:', user.displayName);
-        // سيقوم onAuthStateChanged بالتعامل مع التوجيه
+// التثبيت
+self.addEventListener('install', (event) => {
+  console.log('Service Worker: التثبيت');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Service Worker: تخزين الأصول في الكاش');
+        // هنا يمكن أن يحدث خطأ إذا كان أي من الـ URLs غير متاح (مثل CDN)
+        // لذا نستخدم catch لتخطي الأخطاء والاستمرار في التخزين
+        return cache.addAll(urlsToCache).catch((err) => {
+          console.warn('Service Worker: فشل تخزين بعض الأصول في الكاش (وهذا متوقع لـ CDNs)', err);
+        });
       })
-      .catch((error) => {
-        // معالجة الأخطاء
-        console.error('خطأ في تسجيل الدخول:', error);
-        alert('حدث خطأ أثناء تسجيل الدخول: ' + error.message);
-        loadingSpinner.style.display = 'none';
-        loginButton.style.display = 'flex';
-      });
-  });
-}
+      .then(() => self.skipWaiting())
+  );
+});
 
-// 3. دالة تسجيل الخروج (للاستخدام في صفحات أخرى)
-export async function logout() {
-  try {
-    await auth.signOut();
-    console.log('تم تسجيل الخروج');
-    window.location.href = 'login.html';
-  } catch (error) {
-    console.error('خطأ في تسجيل الخروج:', error);
+// التفعيل
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker: التنشيط');
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Service Worker: حذف الكاش القديم:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// الجلب
+self.addEventListener('fetch', (event) => {
+  // تجاهل طلبات Firebase وخرائط Google
+  if (event.request.url.includes('firebase') || 
+      event.request.url.includes('googleapis') ||
+      event.request.url.includes('gstatic')) {
+    return fetch(event.request);
   }
-}
 
-// 4. دالة للحصول على المستخدم الحالي (للاستخدام في صفحات أخرى)
-export function getCurrentUser() {
-  return new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      if (user) {
-        resolve(user);
-      } else {
-        // إذا لم يكن هناك مستخدم، أعده إلى صفحة تسجيل الدخول
-        console.log("لا يوجد مستخدم، إعادة توجيه لتسجيل الدخول");
-        window.location.href = 'login.html';
-        reject(new Error('User not authenticated'));
-      }
-    });
-  });
-}
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        if (response) {
+          return response;
+        }
+        
+        return fetch(event.request).then((fetchResponse) => {
+          if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
+            return fetchResponse;
+          }
 
-export { auth, db }; // db سيتم تهيئته في app.js
+          const responseToCache = fetchResponse.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+
+          return fetchResponse;
+        }).catch(() => {
+          // يمكن هنا إضافة صفحة خطأ مخصصة لوضع عدم الاتصال إذا لزم الأمر
+          console.log('Service Worker: فشل جلب الشبكة والاحتياطي غير متوفر');
+        });
+      })
+  );
+});

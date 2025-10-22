@@ -1,128 +1,106 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>تحليل الأداء - Trip Tracker</title>
-  
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6b4de6">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#6b4de6" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <div id="loading-overlay" class="loading-overlay" style="display: flex;">
+  <div id="loading-overlay" class="loading-overlay" style="display:none;">
     <div class="loading-spinner"></div>
-    <p>جاري تحليل البيانات...</p>
+    <p>جاري تحليل البيانات…</p>
   </div>
 
   <header class="main-header">
     <a href="index.html" class="header-back-btn">→</a>
     <div class="header-title">
-      <h1>تحليل الأداء</h1>
-      <span>الرسوم البيانية وتقارير الشفتات</span>
+      <h1>التحليل</h1>
+      <span>مراجعة الأداء والإحصائيات</span>
     </div>
     <div class="header-logo">
-      <img src="assets/logo.png" alt="Logo">
+      <img src="assets/icons/icon-192.png" alt="شعار التطبيق" width="46" height="46">
     </div>
   </header>
 
   <main class="main-content">
-
+    <!-- الرسم البياني -->
     <section class="stats-card">
       <h2 class="card-title">
-        <img src="assets/icons/analytics.png" alt="">
-        رسم بياني للدخل (آخر 30 يوم)
+        <img src="assets/icons/analytics.png" alt="تحليل" width="24" height="24">
+        الدخل اليومي (آخر 30 يوم)
       </h2>
-      <div class="chart-container">
+      <div style="height:280px;">
         <canvas id="income-chart"></canvas>
       </div>
-    </section>
-
-    <section class="stats-card">
-      <div class="card-title-container">
-        <h2 class="card-title">
-          <img src="assets/icons/reports.png" alt="">
-          تفاصيل الشفتات
-        </h2>
-        <div class="export-buttons">
-          <button id="export-csv" class="btn-export btn-csv">
-            <img src="assets/icons/csv.png" alt=""> تصدير CSV
-          </button>
-          <button id="export-pdf" class="btn-export btn-pdf">
-            <img src="assets/icons/pdf.png" alt=""> تصدير PDF
-          </button>
-        </div>
+      <div id="no-shifts-message" class="card-message" style="display:none; margin-top:12px;">
+        📊 لا توجد بيانات كافية للعرض.<br>
+        <small>استمر في تسجيل الرحلات لرؤية التحليلات.</small>
       </div>
-      
-      <div class="table-container">
-        <table id="shifts-table">
-          <thead>
-            <tr>
-              <th>التاريخ</th>
-              <th>وقت البدء</th>
-              <th>المدة</th>
-              <th>الدخل</th>
-              <th>رحلات</th>
-              <th>المسافة</th>
-              <th>متوسط/ساعة</th>
-            </tr>
-          </thead>
-          <tbody id="shifts-table-body">
-            </tbody>
-        </table>
-      </div>
-      <div id="no-shifts-message" class="card-message" style="display: none;">
-        <p>لا توجد شفتات مكتملة لعرضها.</p>
+      <div style="display:flex; gap:12px; margin-top:16px;">
+        <button id="export-csv" class="btn btn-secondary">
+          <img src="assets/icons/csv.png" alt="CSV" width="20" height="20">
+          تصدير CSV
+        </button>
+        <button id="export-pdf" class="btn btn-secondary">
+          <img src="assets/icons/download.png" alt="PDF" width="20" height="20">
+          تصدير PDF
+        </button>
       </div>
     </section>
 
+    <!-- جدول الشفتات -->
+    <section class="stats-card table-container">
+      <h2 class="card-title">
+        <img src="assets/icons/reports.png" alt="شفتات" width="24" height="24">
+        جدول الشفتات المكتملة
+      </h2>
+      <table id="shifts-table">
+        <thead>
+          <tr>
+            <th>تاريخ البدء</th>
+            <th>وقت البدء</th>
+            <th>المدة الفعالة</th>
+            <th>الدخل (ر.س)</th>
+            <th>عدد الرحلات</th>
+            <th>المسافة (كم)</th>
+            <th>متوسط/ساعة</th>
+          </tr>
+        </thead>
+        <tbody id="shifts-table-body"></tbody>
+      </table>
+    </section>
   </main>
 
+  <!-- شريط التنقل السفلي -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
-      <img src="assets/icons/home.png" alt="">
+      <img src="assets/icons/home.png" alt="الرئيسية" width="26" height="26">
       <span>الرئيسية</span>
     </a>
     <a href="reports.html" class="nav-item">
-      <img src="assets/icons/reports.png" alt="">
+      <img src="assets/icons/reports.png" alt="التقارير" width="26" height="26">
       <span>التقارير</span>
     </a>
     <a href="analytics.html" class="nav-item active">
-      <img src="assets/icons/analytics.png" alt="">
+      <img src="assets/icons/analytics.png" alt="التحليل" width="26" height="26">
       <span>تحليل</span>
     </a>
     <a href="settings.html" class="nav-item">
-      <img src="assets/icons/settings.png" alt="">
+      <img src="assets/icons/settings.png" alt="الإعدادات" width="26" height="26">
       <span>الإعدادات</span>
     </a>
   </nav>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-    
-    // إعدادات Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
-      authDomain: "trip-tracker-rajeh.firebaseapp.com",
-      projectId: "trip-tracker-rajeh",
-      storageBucket: "trip-tracker-rajeh.appspot.com",
-      messagingSenderId: "1025723412931",
-      appId: "1:1025723412931:web:53a9fa6e1a7a5f43a3dbec",
-      measurementId: "G-J1RBF8H0CC"
-    };
-    const app = initializeApp(firebaseConfig);
-    export const db = getFirestore(app);
-  </script>
-
+  <!-- مكتبات خارجية -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-  <script typef="module" src="analytics.js"></script>
-
+  <!-- ملف التحليلات -->
+  <script type="module" src="analytics.js"></script>
 </body>
 </html>

@@ -1,149 +1,358 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>التقارير - Trip Tracker</title>
+import { 
+  db, collection, getDocs, query, orderBy, doc, updateDoc 
+} from "./firebase-config.js";
+
+const elements = {
+  loading: document.getElementById('loading-overlay'),
+  list: document.getElementById('trips-list'),
+  empty: document.getElementById('empty-state'),
+  editModal: document.getElementById('edit-modal'),
+  editFareInput: document.getElementById('edit-fare'),
+  editSaveBtn: document.getElementById('edit-save'),
+  editCancelBtn: document.getElementById('edit-cancel'),
+  filterStatus: document.getElementById('filter-status'),
+};
+
+let allTrips = [];
+let currentEdit = null;
+
+document.addEventListener('DOMContentLoaded', initializeReports);
+
+function initializeReports() {
+  safeShowLoader("جاري تحميل التقارير...");
+  loadAllTrips().finally(safeHideLoader);
+  bindEditModal();
+  elements.filterStatus?.addEventListener('change', filterAndRenderTrips);
+}
+
+// ====================================================================
+//                       🛠️ أدوات المساعدة
+// ====================================================================
+
+function toDateSafe(timestamp) {
+  if (!timestamp) return new Date();
+  if (timestamp.toDate) return timestamp.toDate();
+  if (timestamp instanceof Date) return timestamp;
+  return new Date(timestamp);
+}
+
+function formatDuration(totalSeconds, format = 'short') {
+  if (totalSeconds < 0) totalSeconds = 0;
   
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#6b4de6">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
   
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
+  const h = hours.toString().padStart(2, '0');
+  const m = minutes.toString().padStart(2, '0');
+  const s = seconds.toString().padStart(2, '0');
 
-  <div id="loading-overlay" class="loading-overlay" style="display: flex;">
-    <div class="loading-spinner"></div>
-    <p>جاري تحميل التقارير...</p>
-  </div>
+  if (format === 'full') {
+    let parts = [];
+    if (hours > 0) parts.push(`${hours} ساعة`);
+    if (minutes > 0 || hours === 0) parts.push(`${minutes} دقيقة`);
+    parts.push(`${seconds} ثانية`);
+    return parts.join(', ');
+  }
+  
+  return `${h}:${m}:${s}`;
+}
 
-  <header class="main-header">
-    <a href="index.html" class="header-back-btn">→</a>
-    <div class="header-title">
-      <h1>تقارير الشفتات</h1>
-      <span>إدارة وتعديل الرحلات</span>
-    </div>
-    <div class="header-logo">
-      <img src="assets/logo.png" alt="Logo">
-    </div>
-  </header>
 
-  <main class="main-content">
+// ====================================================================
+//                          📄 وظائف التقارير
+// ====================================================================
 
-    <section class="filters-container">
-      <div class="search-bar">
-        <input type="text" id="search-input" placeholder="ابحث في الرحلات (بالقيمة أو الملاحظة)...">
-        <img src="assets/icons/search.png" alt="بحث">
-      </div>
-      <div class="filter-dropdowns">
-        <select id="filter-status">
-          <option value="all">كل الحالات</option>
-          <option value="completed">مكتملة</option>
-          <option value="active">جارية</option>
-        </select>
-        <select id="filter-period">
-          <option value="all">كل الفترات</option>
-          <option value="today">اليوم</option>
-          <option value="week">هذا الأسبوع</option>
-          <option value="month">هذا الشهر</option>
-        </select>
-      </div>
-    </section>
+async function loadAllTrips() {
+  try {
+    allTrips = [];
+    const shiftsRef = collection(db, 'shifts');
+    const snapshot = await getDocs(shiftsRef);
 
-    <div class="active-shift-bar" id="active-shift-bar" style="display: none;">
-      <img src="assets/icons/calendar.png" alt="">
-      <span><strong>الشفت النشط:</strong> <span id="active-shift-details">...</span></span>
-    </div>
-
-    <section id="trips-list" class="trips-list">
-      <div id="no-trips-message" class="card-message" style="display: none;">
-        <p>لا توجد رحلات تطابق هذا البحث.</p>
-      </div>
-    </section>
-
-  </main>
-
-  <nav class="bottom-nav">
-    <a href="index.html" class="nav-item">
-      <img src="assets/icons/home.png" alt="">
-      <span>الرئيسية</span>
-    </a>
-    <a href="reports.html" class="nav-item active">
-      <img src="assets/icons/reports.png" alt="">
-      <span>التقارير</span>
-    </a>
-    <a href="analytics.html" class="nav-item">
-      <img src="assets/icons/analytics.png" alt="">
-      <span>تحليل</span>
-    </a>
-    <a href="settings.html" class="nav-item">
-      <img src="assets/icons/settings.png" alt="">
-      <span>الإعدادات</span>
-    </a>
-  </nav>
-
-  <div id="details-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-      <span id="close-details-modal" class="close-btn">&times;</span>
-      <h2>تفاصيل الرحلة</h2>
-      <div class="details-grid">
-        <p><strong>نقطة البداية:</strong> <span id="detail-start-loc">غير متوفر</span></p>
-        <p><strong>نقطة النهاية:</strong> <span id="detail-end-loc">غير متوفر</span></p>
-        <p><strong>البداية:</strong> <span id="detail-start-time">...</span></p>
-        <p><strong>النهاية:</strong> <span id="detail-end-time">...</span></p>
-        <p><strong>المدة:</strong> <span id="detail-duration">...</span></p>
-        <p><strong>المسافة:</strong> <span id="detail-distance">...</span></p>
-        <p><strong>القيمة:</strong> <span id="detail-fare">...</span></p>
-        <p><strong>الحالة:</strong> <span id="detail-status">...</span></p>
-      </div>
-      <button id="details-close-btn" class="btn btn-primary">إغلاق</button>
-    </div>
-  </div>
-
-  <div id="edit-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-      <span id="close-edit-modal" class="close-btn">&times;</span>
-      <h2>تعديل الرحلة</h2>
-      <input type="hidden" id="edit-shift-id">
-      <input type="hidden" id="edit-trip-id">
+    // استخدام Promise.all لجعل جلب الرحلات متوازيًا
+    const tripPromises = snapshot.docs.map(async (d) => {
+      const shiftId = d.id;
+      const tripsRef = collection(db, 'shifts', shiftId, 'trips');
+      const tripsSnap = await getDocs(query(tripsRef, orderBy('startTime', 'desc')));
       
-      <label for="edit-fare">قيمة الرحلة (ر.س):</label>
-      <input type="number" id="edit-fare" inputmode="decimal">
-      
-      <label for="edit-distance">المسافة (كم):</label>
-      <input type="number" id="edit-distance" inputmode="decimal" step="0.01">
-      
-      <label for="edit-notes">ملاحظات (اختياري):</label>
-      <textarea id="edit-notes" rows="3"></textarea>
-      
-      <button id="save-edit-btn" class="btn btn-primary">حفظ التعديلات</button>
-      <button id="cancel-edit-btn" class="btn btn-secondary">إلغاء</button>
+      const trips = [];
+      tripsSnap.forEach(tdoc => {
+        const data = tdoc.data();
+        trips.push({
+          shiftId,
+          tripId: tdoc.id,
+          status: data.status || 'completed',
+          fare: Number(data.fare || 0),
+          startTime: data.startTime || null,
+          endTime: data.endTime || null,
+          distanceMeters: Number(data.distanceMeters || 0),
+          durationSeconds: Number(data.durationSeconds || 0),
+          startLocation: data.startLocation || null,
+          endLocation: data.endLocation || null,
+        });
+      });
+      return trips;
+    });
+
+    const results = await Promise.all(tripPromises);
+    allTrips = results.flat();
+
+    // فرز جميع الرحلات حسب وقت الانتهاء (أو البدء إذا لم تكتمل)
+    allTrips.sort((a,b) => {
+      const ta = toDateSafe(a.endTime || a.startTime).getTime();
+      const tb = toDateSafe(b.endTime || b.startTime).getTime();
+      return tb - ta;
+    });
+
+    filterAndRenderTrips();
+  } catch (e) {
+    console.error("❌ خطأ في تحميل الرحلات:", e);
+    showEmpty("فشل تحميل البيانات. حاول لاحقًا.");
+  }
+}
+
+function filterAndRenderTrips() {
+  const filter = elements.filterStatus?.value || 'all';
+  let filteredTrips = allTrips;
+
+  if (filter !== 'all') {
+    filteredTrips = allTrips.filter(t => t.status === filter);
+  }
+
+  renderTrips(filteredTrips);
+}
+
+function renderTrips(trips) {
+  if (!elements.list) return;
+  elements.list.innerHTML = '';
+
+  if (!trips || trips.length === 0) {
+    showEmpty("لا توجد رحلات مسجلة تطابق التصفية.");
+    return;
+  }
+  hideEmpty();
+
+  trips.forEach(t => {
+    const date = toDateSafe(t.startTime);
+    const end = t.endTime ? toDateSafe(t.endTime) : null;
+    const duration = formatDuration(t.durationSeconds || 0, 'full');
+    const km = (t.distanceMeters || 0) / 1000;
+    const statusClass = (t.status === 'completed') ? 'completed' : 'active';
+    const statusText = (t.status === 'completed') ? 'مكتملة' : 'نشطة';
+
+    const card = document.createElement('div');
+    card.className = 'trip-card';
+    card.innerHTML = `
+      <div class="trip-card-header">
+        <div>
+          <div class="trip-fare">${Number(t.fare || 0).toFixed(2)} ر.س</div>
+          <small>${date.toLocaleDateString('ar-SA')} • ${date.toLocaleTimeString('ar-SA')}</small>
+        </div>
+        <div class="trip-status ${statusClass}">${statusText}</div>
+      </div>
+      <div class="trip-card-body">
+        <div>
+          <span>المدة:</span>
+          <strong>${duration}</strong>
+        </div>
+        <div>
+          <span>المسافة:</span>
+          <strong>${km.toFixed(2)} كم</strong>
+        </div>
+        <div>
+          <span>بداية الرحلة:</span>
+          <small>${t.startLocation ? `${t.startLocation.latitude.toFixed(4)}, ${t.startLocation.longitude.toFixed(4)}` : 'غير متوفر'}</small>
+        </div>
+        <div>
+          <span>نهاية الرحلة:</span>
+          <small>${t.endLocation ? `${t.endLocation.latitude.toFixed(4)}, ${t.endLocation.longitude.toFixed(4)}` : 'غير متوفر'}</small>
+        </div>
+      </div>
+      ${t.status === 'completed' ? `<div class="trip-card-actions">
+        <button class="btn btn-secondary btn-edit" data-trip-id="${t.tripId}" data-shift-id="${t.shiftId}" data-fare="${t.fare}">
+          <img src="assets/icons/edit.png" alt="تعديل" width="18" height="18">
+          تعديل الأجرة
+        </button>
+      </div>` : ''}
+    `;
+
+    elements.list.appendChild(card);
+  });
+
+  // إضافة مستمعي الأحداث لأزرار التعديل
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', handleEditClick);
+  });
+}
+
+// ====================================================================
+//                          ✍️ وظائف التعديل
+// ====================================================================
+
+function handleEditClick(event) {
+  const btn = event.currentTarget;
+  const tripId = btn.dataset.tripId;
+  const shiftId = btn.dataset.shiftId;
+  const currentFare = parseFloat(btn.dataset.fare);
+
+  currentEdit = { tripId, shiftId, currentFare };
+
+  if (elements.editFareInput) {
+    elements.editFareInput.value = currentEdit.currentFare.toFixed(2);
+  }
+  elements.editModal.style.display = 'flex';
+}
+
+function bindEditModal() {
+  elements.editSaveBtn?.addEventListener('click', saveEditedFare);
+  elements.editCancelBtn?.addEventListener('click', () => {
+    elements.editModal.style.display = 'none';
+  });
+}
+
+async function saveEditedFare() {
+  if (!currentEdit) return;
+
+  const newFare = parseFloat(elements.editFareInput?.value);
+  if (isNaN(newFare) || newFare < 0) {
+    showError('يرجى إدخال قيمة صحيحة للأجرة.');
+    return;
+  }
+
+  elements.editModal.style.display = 'none';
+  safeShowLoader("جاري حفظ التعديل...");
+
+  try {
+    const { tripId, shiftId, currentFare } = currentEdit;
+    
+    // 1. تحديث الرحلة
+    const tripRef = doc(db, 'shifts', shiftId, 'trips', tripId);
+    await updateDoc(tripRef, {
+      fare: newFare,
+      lastUpdated: new Date()
+    });
+
+    // 2. تحديث الشفت (حساب الفرق وتطبيقه)
+    const shiftRef = doc(db, 'shifts', shiftId);
+    
+    // البحث عن الشفت في قاعدة البيانات للحصول على البيانات الحالية
+    const shiftSnap = await getDocs(query(collection(db, 'shifts'), orderBy('startTime', 'desc')));
+    const currentShift = shiftSnap.docs.find(d => d.id === shiftId)?.data();
+
+    if (currentShift) {
+        const fareDifference = newFare - currentFare;
+        const newTotalIncome = (currentShift.totalIncome || 0) + fareDifference;
+        
+        await updateDoc(shiftRef, {
+            totalIncome: newTotalIncome,
+            lastUpdated: new Date()
+        });
+    }
+
+    // 3. تحديث البيانات المحلية وإعادة العرض
+    const tripIndex = allTrips.findIndex(t => t.tripId === tripId && t.shiftId === shiftId);
+    if (tripIndex !== -1) {
+        // تحديث الأجرة في المصفوفة المحلية
+        allTrips[tripIndex].fare = newFare;
+    }
+
+    filterAndRenderTrips();
+    showNotification('تم تحديث الأجرة بنجاح!', 'success');
+
+  } catch (error) {
+    console.error("❌ خطأ في حفظ التعديل:", error);
+    showError("فشل في حفظ التعديل. حاول مرة أخرى.");
+  } finally {
+    safeHideLoader();
+    currentEdit = null;
+  }
+}
+
+// ====================================================================
+//                        📢 الإشعارات والتحميل
+// ====================================================================
+
+function showEmpty(message) {
+  if (elements.list && elements.empty) {
+    elements.list.style.display = 'none';
+    elements.empty.textContent = message;
+    elements.empty.style.display = 'block';
+  }
+}
+
+function hideEmpty() {
+  if (elements.list && elements.empty) {
+    elements.list.style.display = 'block';
+    elements.empty.style.display = 'none';
+  }
+}
+
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.innerHTML = `
+    <div class="notification-content">
+      <span class="notification-icon">${type === 'success' ? '✅' : '❌'}</span>
+      <span class="notification-message">${message}</span>
     </div>
-  </div>
+  `;
+  
+  notification.style.cssText = `
+    position: fixed;
+    top: 100px;
+    left: 20px;
+    right: 20px;
+    background: ${type === 'success' ? 'var(--green)' : 'var(--red)'};
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    z-index: 10000;
+    transform: translateY(-20px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    text-align: center;
+    backdrop-filter: blur(20px);
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.transform = 'translateY(0)';
+    notification.style.opacity = '1';
+  }, 10);
+  
+  setTimeout(() => {
+    notification.style.transform = 'translateY(-20px)';
+    notification.style.opacity = '0';
+    setTimeout(() => notification.remove(), 300);
+  }, 4000);
+}
 
+function showError(message) {
+  showNotification(message, 'error');
+}
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+function safeShowLoader(message = 'جاري التحميل...') {
+  try {
+    if (elements.loading) {
+      elements.loading.querySelector('p').textContent = message;
+      elements.loading.style.display = 'flex';
+      setTimeout(() => {
+        elements.loading.classList.add('show');
+      }, 10);
+    }
+  } catch {}
+}
 
-    // إعدادات Firebase الخاصة بك (من ملف 1.jpg)
-    const firebaseConfig = {
-      apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
-      authDomain: "trip-tracker-rajeh.firebaseapp.com",
-      projectId: "trip-tracker-rajeh",
-      storageBucket: "trip-tracker-rajeh.appspot.com",
-      messagingSenderId: "1025723412931",
-      appId: "1:1025723412931:web:53a9fa6e1a7a5f43a3dbec",
-      measurementId: "G-J1RBF8H0CC"
-    };
-
-    // تهيئة Firebase
-    const app = initializeApp(firebaseConfig);
-    export const db = getFirestore(app);
-  </script>
-
-  <script type="module" src="reports.js"></script>
-
-</body>
-</html>
+function safeHideLoader() {
+  try { 
+    if (elements.loading) {
+      elements.loading.classList.remove('show');
+      setTimeout(() => {
+        elements.loading.style.display = 'none'; 
+      }, 300);
+    }
+  } catch {}
+}
