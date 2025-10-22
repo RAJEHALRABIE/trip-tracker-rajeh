@@ -1,6 +1,157 @@
-/* في ملف style.css - أضف هذه القواعد أو قم بتحديث القواعد الموجودة */
+/* style.css - النسخة المصححة للتنسيق */
 
-/* تحسين الأزرار الأساسي */
+:root {
+    --primary-color: #6b4de6; /* بنفسجي */
+    --secondary-color: #f7f7f7; /* رمادي فاتح للخلفيات */
+    --success-color: #4CAF50; /* أخضر */
+    --warning-color: #FFC107; /* أصفر/برتقالي */
+    --danger-color: #F44336; /* أحمر */
+    --text-primary: #333;
+    --text-secondary: #666;
+    --border-color: #ddd;
+    --card-bg: #fff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--secondary-color);
+    color: var(--text-primary);
+    direction: rtl;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 20px 15px 80px 15px; /* ترك مساحة لشريط التنقل السفلي */
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* -------------------- Header -------------------- */
+.main-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-title h1 {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.header-title span {
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+.header-logo img {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+}
+
+/* -------------------- Cards -------------------- */
+.stats-card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.card-title img {
+    width: 20px;
+    height: 20px;
+    margin-left: 10px;
+    filter: brightness(0.5) sepia(1) hue-rotate(240deg) saturate(3); /* لتلوين الأيقونة */
+}
+
+/* -------------------- Global Stats Grid -------------------- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--secondary-color);
+}
+
+.stat-icon img {
+    width: 24px;
+    height: 24px;
+    margin-left: 10px;
+}
+
+.stat-info {
+    flex-grow: 1;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+
+/* -------------------- Control Section - Shift State -------------------- */
+.shift-state {
+    padding: 10px 0;
+}
+
+.summary-box {
+    text-align: center;
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 15px;
+}
+
+.shift-status-text {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
+
+.shift-duration-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin-top: 5px;
+}
+
+/* -------------------- Buttons and Actions -------------------- */
 .btn {
     padding: 12px 15px;
     font-size: 16px;
@@ -10,67 +161,179 @@
     cursor: pointer;
     text-align: center;
     border: none;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    display: flex; /* لترتيب الأيقونة والنص */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px; /* مسافة بين الأيقونة والنص */
+    gap: 8px;
 }
+
 .btn img {
     height: 20px;
     width: 20px;
-    filter: invert(100%); /* لجعل الأيقونات بيضاء على الأزرار الملونة */
+    filter: invert(100%); /* لجعل الأيقونات بيضاء */
+}
+
+/* ألوان الأزرار */
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+.btn-primary:hover:not(:disabled) { background-color: #553eaf; }
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+.btn-danger:hover:not(:disabled) { background-color: #d32f2f; }
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+.btn-success:hover:not(:disabled) { background-color: #388E3C; }
+
+.btn-warning {
+    background-color: var(--warning-color);
+    color: var(--text-primary);
+}
+.btn-warning:hover:not(:disabled) { background-color: #fbc02d; }
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+.btn-secondary:hover:not(:disabled) { background-color: #e0e0e0; }
+
+.btn:disabled, .btn-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* تنسيق مجموعة الأزرار داخل الشفت */
 .shift-actions, .trip-actions {
     display: flex;
-    gap: 10px; /* مسافة بين الأزرار */
+    gap: 10px;
     margin-top: 15px;
 }
 
-/* لجعل الأزرار تأخذ نصف أو كامل المساحة بشكل صحيح */
-.btn-half {
-    flex: 1; /* لكل زر نصف المساحة */
+.btn-half, .btn-full-width {
+    flex: 1;
     min-width: 48%;
 }
 
 .btn-full-width {
-    flex: 1; /* زر بدء/إنهاء الرحلة يأخذ كامل المساحة */
     min-width: 100%;
 }
 
 .trip-state {
-    width: 100%; /* لضمان أن div الحالة تأخذ عرض الأب */
+    width: 100%;
 }
 
-/* تنسيق إحصائيات الشفت النشط لتبدو صغيرة */
+/* إحصائيات الشفت النشط (تنسيق مختلف عن الكلية) */
 .shift-stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     margin-top: 20px;
     padding-top: 15px;
-    border-top: 1px solid var(--light-gray, #eee);
+    border-top: 1px solid var(--border-color);
 }
 .shift-stats-grid .stat-item {
-    padding: 10px;
+    background-color: transparent;
+    border: none;
+    text-align: center;
+    display: block;
+    padding: 5px;
 }
 .shift-stats-grid .stat-value {
     font-size: 20px;
-    font-weight: 800;
 }
 .shift-stats-grid .stat-label {
-    font-size: 13px;
-    color: var(--text-secondary, #666);
+    font-size: 12px;
 }
 
-/* تحسينات الموبايل */
-@media (max-width: 600px) {
+
+/* -------------------- Bottom Navigation -------------------- */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--card-bg);
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    z-index: 1000;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.nav-item img {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 2px;
+    filter: opacity(0.7);
+    transition: filter 0.2s;
+}
+
+.nav-item.active {
+    color: var(--primary-color);
+}
+
+.nav-item.active img {
+    filter: opacity(1) brightness(0.5) sepia(1) hue-rotate(240deg) saturate(3);
+}
+
+
+/* -------------------- Loading Overlay -------------------- */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.loading-spinner {
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* -------------------- Responsive Design (Mobile First) -------------------- */
+@media (min-width: 600px) {
     .main-content {
-        padding: 10px; /* تقليل البادينج الإجمالي */
+        padding: 20px;
     }
-    .shift-actions, .trip-actions {
-        flex-direction: row; /* إبقاء الأزرار في صف واحد على الأقل للموبايل */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }

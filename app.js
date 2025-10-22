@@ -1,16 +1,15 @@
-// app.js - المصحح والنهائي
-
+// app.js - المصحح والنهائي (من الرد السابق)
 import { 
   db, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc, writeBatch, orderBy 
 } from "./firebase-config.js"; 
 import { safeShowLoader, safeHideLoader, showNotification, formatTime } from "./utils.js"; 
 
-// العناصر (ملاحظة: العناصر كلها سليمة من التعديل السابق)
+// العناصر 
 const elements = {
   startShiftBtn: document.getElementById('startShiftBtn'),
-  endShiftBtn: document.getElementById('endShiftBtn'), // هذا زر إنهاء الشفت
+  endShiftBtn: document.getElementById('endShiftBtn'), 
   startTripBtn: document.getElementById('startTripBtn'),
-  endTripBtn: document.getElementById('endTripBtn'), // هذا زر إنهاء الرحلة
+  endTripBtn: document.getElementById('endTripBtn'), 
   pauseShiftBtn: document.getElementById('pauseShiftBtn'),
 
   shiftStatus: document.getElementById('shift-status'),
@@ -121,9 +120,6 @@ async function fetchGlobalStats() {
 
 // -------------------- معالجة حالة الشفت والرحلة --------------------
 
-// تم دمج checkActiveTrip داخليًا في checkShiftStatus لضمان التزامن
-// لتبسيط الكود وحل مشكلة التناقض
-
 async function checkShiftStatus() {
     safeShowLoader('جاري التحقق من حالة الشفت...');
     try {
@@ -131,12 +127,10 @@ async function checkShiftStatus() {
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
-            // لا يوجد شفت نشط في DB
             state.currentShift = null; 
             state.currentTrip = null; 
             stopTimer();
         } else {
-            // يوجد شفت نشط في DB
             const shiftDoc = snapshot.docs[0];
             state.currentShift = { id: shiftDoc.id, ...shiftDoc.data() };
             state.shiftStartTime = state.currentShift.startTime ? state.currentShift.startTime.toDate() : new Date(); 
@@ -146,7 +140,6 @@ async function checkShiftStatus() {
             const tripSnapshot = await getDocs(tripQ);
 
             if (!tripSnapshot.empty) {
-                // وجدت رحلة نشطة. يتم تحميلها للحالة
                 const tripDoc = tripSnapshot.docs[0];
                 state.currentTrip = { id: tripDoc.id, ...tripDoc.data() };
             } else {
@@ -159,21 +152,16 @@ async function checkShiftStatus() {
     } catch (error) {
         console.error("❌ خطأ حرج في التحقق من حالة الشفت:", error);
         showNotification("❌ فشل الاتصال بقاعدة البيانات. تحقق من اتصالك.", 'error');
-        // إعادة ضبط الحالة المحلية في حالة فشل الاتصال
         state.currentShift = null; 
         state.currentTrip = null; 
     }
     
-    // ضمان إغلاق اللودر وتحديث الواجهة في أي حال
     finally {
       updateUIForActiveShift();
       safeHideLoader();
     }
 }
 
-
-// وظائف startShift و endShift و startTrip و endTrip و togglePauseShift
-// تم التأكد من سلامتها المنطقية في الردود السابقة وتحديثها هنا لتستخدم state.currentTrip و updateUIForActiveShift بشكل سليم
 
 async function startShift() {
     safeShowLoader("جاري التحقق...");
@@ -218,7 +206,6 @@ async function endShift() {
         return;
     }
     
-    // إعادة التحقق السريع من الرحلة قبل الإنهاء
     if (state.currentTrip) { 
         showNotification("⚠️ يجب إنهاء الرحلة النشطة أولاً.", 'error');
         return;
@@ -282,7 +269,6 @@ async function startTrip() {
         
         state.currentTrip = { id: docRef.id, ...newTrip };
 
-        // تحديث الشفت بالإشارة للرحلة النشطة
         const shiftDocRef = doc(shiftsRef, state.currentShift.id);
         await updateDoc(shiftDocRef, {
             currentTripId: docRef.id,
@@ -310,7 +296,6 @@ async function endTrip() {
     
     if (fare <= 0 || distance <= 0) {
         showNotification("⚠️ تم إلغاء إنهاء الرحلة أو إدخال قيم غير صالحة.", 'info');
-        // في حالة الإلغاء نترك الحالة كما هي
         return;
     }
 
@@ -328,7 +313,6 @@ async function endTrip() {
             distance: distance,
         });
 
-        // تحديث إحصائيات الشفت
         const shiftDocRef = doc(shiftsRef, state.currentShift.id);
         const newTotalIncome = (state.currentShift.totalIncome || 0) + fare;
         const newTotalDistance = (state.currentShift.totalDistance || 0) + distance;
@@ -338,10 +322,9 @@ async function endTrip() {
             totalIncome: newTotalIncome,
             totalDistance: newTotalDistance,
             tripCount: newTripCount,
-            currentTripId: null, // إزالة الإشارة للرحلة النشطة
+            currentTripId: null, 
         });
 
-        // تحديث الإحصائيات الكلية
         const statsDocSnap = await getDoc(statsRef);
         let currentStats = statsDocSnap.exists() ? statsDocSnap.data() : { totalIncome: 0, totalDistance: 0, totalTrips: 0 };
 
@@ -353,11 +336,10 @@ async function endTrip() {
 
         await batch.commit();
 
-        // تحديث الحالة المحلية
         state.currentShift.totalIncome = newTotalIncome;
         state.currentShift.totalDistance = newTotalDistance;
         state.currentShift.tripCount = newTripCount;
-        state.currentTrip = null; // **التصحيح الحاسم:** تفريغ الرحلة من الحالة المحلية
+        state.currentTrip = null; // تفريغ الرحلة من الحالة المحلية
 
         updateUIForActiveShift();
         fetchGlobalStats();
@@ -399,9 +381,9 @@ function initializeApp() {
     checkShiftStatus(); 
 
     if (elements.startShiftBtn) elements.startShiftBtn.addEventListener('click', startShift);
-    if (elements.endShiftBtn) elements.endShiftBtn.addEventListener('click', endShift); // زر إنهاء الشفت
+    if (elements.endShiftBtn) elements.endShiftBtn.addEventListener('click', endShift); 
     if (elements.startTripBtn) elements.startTripBtn.addEventListener('click', startTrip);
-    if (elements.endTripBtn) elements.endTripBtn.addEventListener('click', endTrip); // زر إنهاء الرحلة
+    if (elements.endTripBtn) elements.endTripBtn.addEventListener('click', endTrip); 
     if (elements.pauseShiftBtn) elements.pauseShiftBtn.addEventListener('click', togglePauseShift);
 }
 
