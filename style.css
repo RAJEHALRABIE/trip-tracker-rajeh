@@ -1,4 +1,4 @@
-/* style.css - النسخة المصححة للتنسيق */
+/* style.css - النسخة المصححة للتنسيق النظيف */
 
 :root {
     --primary-color: #6b4de6; /* بنفسجي */
@@ -30,7 +30,7 @@ body {
 
 .main-content {
     flex-grow: 1;
-    padding: 20px 15px 80px 15px; /* ترك مساحة لشريط التنقل السفلي */
+    padding: 20px 15px 80px 15px;
     max-width: 800px;
     width: 100%;
     margin: 0 auto;
@@ -86,7 +86,6 @@ body {
     width: 20px;
     height: 20px;
     margin-left: 10px;
-    /* هذا الفلتر يغير لون الأيقونة لتناسب اللون الأساسي */
     filter: brightness(0.5) sepia(1) hue-rotate(240deg) saturate(3);
 }
 
@@ -163,7 +162,7 @@ body {
     text-align: center;
     border: none;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    display: flex;
+    display: flex; 
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -172,7 +171,7 @@ body {
 .btn img {
     height: 20px;
     width: 20px;
-    filter: invert(100%); /* لجعل الأيقونات بيضاء */
+    filter: invert(100%); 
 }
 
 /* ألوان الأزرار */
@@ -210,30 +209,52 @@ body {
 .btn:disabled, .btn-disabled {
     opacity: 0.6;
     cursor: not-allowed;
-    pointer-events: none;
+    pointer-events: none; 
 }
 
+/* تنسيق حقول إدخال الموقع الجديدة */
+.location-input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: 'Cairo', sans-serif;
+    font-size: 16px;
+    text-align: right;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+
 /* تنسيق مجموعة الأزرار داخل الشفت */
-.shift-actions, .trip-actions {
+.shift-actions {
     display: flex;
     gap: 10px;
     margin-top: 15px;
 }
+.trip-actions {
+    display: flex;
+    flex-direction: column; /* لضمان تكديس المدخلات والزر عمودياً */
+    gap: 10px;
+    margin-top: 15px;
+}
 
-.btn-half, .btn-full-width {
+
+/* توزيع مساحة الأزرار */
+.btn-half {
     flex: 1;
     min-width: 48%;
 }
 
 .btn-full-width {
-    min-width: 100%;
+    width: 100%;
 }
 
 .trip-state {
     width: 100%;
 }
 
-/* إحصائيات الشفت النشط (تنسيق مختلف عن الكلية) */
+/* إحصائيات الشفت النشط */
 .shift-stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

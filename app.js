@@ -1,10 +1,14 @@
-// app.js - المصحح والنهائي (من الرد السابق)
+// app.js - المصحح والنهائي مع دمج Google Maps API
+
 import { 
   db, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc, writeBatch, orderBy 
 } from "./firebase-config.js"; 
 import { safeShowLoader, safeHideLoader, showNotification, formatTime } from "./utils.js"; 
 
-// العناصر 
+// **1. مفتاح Google Maps API (يجب استبداله)**
+const GOOGLE_MAPS_API_KEY = "PLACEHOLDER_FOR_YOUR_API_KEY"; 
+
+// العناصر
 const elements = {
   startShiftBtn: document.getElementById('startShiftBtn'),
   endShiftBtn: document.getElementById('endShiftBtn'), 
@@ -23,6 +27,10 @@ const elements = {
   noTripState: document.getElementById('noTripState'),
   activeTripState: document.getElementById('activeTripState'),
   
+  // العناصر الجديدة لمدخلات الموقع
+  startLocation: document.getElementById('startLocation'),
+  endLocation: document.getElementById('endLocation'),
+  
   globalTotalIncome: document.getElementById('totalIncome'),
   globalTotalDistance: document.getElementById('totalDistance'),
 };
@@ -40,6 +48,46 @@ let state = {
   isPaused: false,
   timerInterval: null,
 };
+
+
+// -------------------- الدوال المساعدة --------------------
+
+/**
+ * تحسب المسافة بين نقطتين باستخدام Google Directions API.
+ * @param {string} origin - نقطة الانطلاق (مثال: "Riyadh, Saudi Arabia").
+ * @param {string} destination - نقطة الوصول.
+ * @returns {Promise<number>} المسافة بالكيلومتر.
+ */
+async function calculateDistance(origin, destination) {
+    if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === "PLACEHOLDER_FOR_YOUR_API_KEY") {
+        showNotification("⚠️ لم يتم تعيين مفتاح Google Maps API. لن يتم حساب المسافة.", 'error');
+        return 0;
+    }
+    
+    // استخدام mode=driving لضمان حساب مسافة الطريق وليس خطاً مستقيماً
+    const apiUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.routes.length > 0) {
+            // المسافة الكلية للمسار الأول (بوحدة المتر)
+            const distanceMeters = data.routes[0].legs[0].distance.value;
+            // تحويل المسافة إلى كيلومتر
+            const distanceKm = distanceMeters / 1000; 
+            return parseFloat(distanceKm.toFixed(2));
+        } else {
+            console.error("❌ Google Maps API Status:", data.status, data.error_message);
+            showNotification(`❌ فشل حساب المسافة: ${data.status}. تحقق من العناوين والمفتاح.`, 'error');
+            return 0;
+        }
+    } catch (error) {
+        console.error("❌ خطأ في الاتصال بـ Google Maps API:", error);
+        showNotification("❌ فشل الاتصال بخدمة الخرائط.", 'error');
+        return 0;
+    }
+}
 
 
 // -------------------- إدارة الواجهة والوقت --------------------
@@ -274,6 +322,10 @@ async function startTrip() {
             currentTripId: docRef.id,
         });
         
+        // مسح المدخلات عند بدء الرحلة (اختياري)
+        if(elements.startLocation) elements.startLocation.value = '';
+        if(elements.endLocation) elements.endLocation.value = '';
+        
         updateUIForActiveShift();
         showNotification("✅ تم بدء رحلة جديدة!", 'success');
 
@@ -291,15 +343,35 @@ async function endTrip() {
         return;
     }
     
-    const fare = parseFloat(prompt("أدخل الأجرة (ريال سعودي):", "50")) || 0;
-    const distance = parseFloat(prompt("أدخل المسافة (كم):", "15")) || 0;
+    // 1. طلب الأجرة يدوياً (القيمة الافتراضية الآن صفر)
+    const fare = parseFloat(prompt("أدخل الأجرة (ريال سعودي):", "0")) || 0;
     
-    if (fare <= 0 || distance <= 0) {
-        showNotification("⚠️ تم إلغاء إنهاء الرحلة أو إدخال قيم غير صالحة.", 'info');
+    // 2. قراءة نقاط البداية والنهاية من حقول الإدخال
+    const origin = elements.startLocation ? elements.startLocation.value.trim() : null;
+    const destination = elements.endLocation ? elements.endLocation.value.trim() : null;
+
+    if (fare <= 0 || !origin || !destination) {
+        // مسح المدخلات عند فشل الإدخال
+        if(elements.startLocation) elements.startLocation.value = '';
+        if(elements.endLocation) elements.endLocation.value = '';
+        showNotification("⚠️ يجب إدخال الأجرة ونقاط البداية والنهاية.", 'info');
         return;
     }
 
-    safeShowLoader("جاري إنهاء الرحلة وحفظ البيانات...");
+    safeShowLoader("جاري إنهاء الرحلة وحساب المسافة...");
+
+    // 3. استدعاء دالة حساب المسافة الفعلية
+    const distance = await calculateDistance(origin, destination);
+    
+    if (distance <= 0) {
+        // مسح المدخلات عند فشل الحساب
+        if(elements.startLocation) elements.startLocation.value = '';
+        if(elements.endLocation) elements.endLocation.value = '';
+        showNotification("⚠️ فشل حساب المسافة أو المسافة صفر. تم إلغاء الإنهاء.", 'error');
+        safeHideLoader();
+        return;
+    }
+
     try {
         const tripDocRef = doc(tripsRef, state.currentTrip.id);
         const endTime = new Date();
@@ -310,7 +382,7 @@ async function endTrip() {
             endTime: endTime,
             status: "completed",
             fare: fare,
-            distance: distance,
+            distance: distance, // استخدام المسافة المحسوبة من API
         });
 
         const shiftDocRef = doc(shiftsRef, state.currentShift.id);
@@ -339,12 +411,16 @@ async function endTrip() {
         state.currentShift.totalIncome = newTotalIncome;
         state.currentShift.totalDistance = newTotalDistance;
         state.currentShift.tripCount = newTripCount;
-        state.currentTrip = null; // تفريغ الرحلة من الحالة المحلية
+        state.currentTrip = null; 
+        
+        // 4. مسح المدخلات عند النجاح
+        if(elements.startLocation) elements.startLocation.value = '';
+        if(elements.endLocation) elements.endLocation.value = '';
 
         updateUIForActiveShift();
         fetchGlobalStats();
 
-        showNotification(`✅ تم إنهاء الرحلة بنجاح. الأجرة: ${fare} ر.س.`, 'success');
+        showNotification(`✅ تم إنهاء الرحلة بنجاح. المسافة: ${distance} كم.`, 'success');
 
     } catch (error) {
         console.error("❌ خطأ في إنهاء الرحلة:", error);
@@ -381,10 +457,11 @@ function initializeApp() {
     checkShiftStatus(); 
 
     if (elements.startShiftBtn) elements.startShiftBtn.addEventListener('click', startShift);
-    if (elements.endShiftBtn) elements.endShiftBtn.addEventListener('click', endShift); 
+    if (elements.endShiftBtn) elements.endShiftBtn.addEventListener('click', endTrip); // ربط endTripBtn بـ endTrip
     if (elements.startTripBtn) elements.startTripBtn.addEventListener('click', startTrip);
-    if (elements.endTripBtn) elements.endTripBtn.addEventListener('click', endTrip); 
     if (elements.pauseShiftBtn) elements.pauseShiftBtn.addEventListener('click', togglePauseShift);
+    // زر endShiftBtn موجود بالأساس في ملف index.html
+    if (elements.endShiftBtn) elements.endShiftBtn.addEventListener('click', endShift);
 }
 
 document.addEventListener('DOMContentLoaded', initializeApp);
