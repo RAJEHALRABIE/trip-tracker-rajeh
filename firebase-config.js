@@ -7,7 +7,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import { 
   getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc, 
-  writeBatch, deleteDoc, setDoc, orderBy // تم استيراد جميع الدوال الضرورية
+  writeBatch, deleteDoc, setDoc, orderBy, onSnapshot // استيراد onSnapshot لـ app.js
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 // تكوين Firebase (التهيئة لمرة واحدة)
@@ -38,5 +38,6 @@ export {
     writeBatch,
     deleteDoc,
     setDoc,
-    orderBy
+    orderBy,
+    onSnapshot 
 };
