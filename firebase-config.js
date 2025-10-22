@@ -1,10 +1,16 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+// ** firebase-config.js **
+// هذا الملف يقوم بتهيئة Firebase مرة واحدة وتصدير الكائنات اللازمة
+// هذا يحل مشكلة initializeApp has already been declared بشكل جذري.
+
 import { 
-  getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where, orderBy, onSnapshot,
-  writeBatch, setDoc, getDoc, deleteDoc
+  initializeApp 
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc, 
+  writeBatch, deleteDoc, setDoc, orderBy // تم استيراد جميع الدوال الضرورية
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-// تكوين Firebase - يجب استبدال هذه القيم بقيم تطبيقك
+// تكوين Firebase (التهيئة لمرة واحدة)
 const firebaseConfig = {
   apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
   authDomain: "trip-tracker-rajeh.firebaseapp.com",
@@ -15,12 +21,22 @@ const firebaseConfig = {
   measurementId: "G-J1RBF8H0CC"
 };
 
-// التهيئة
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// تصدير العناصر المطلوبة
-export {
-    db, collection, addDoc, updateDoc, doc, getDocs, query, where, orderBy, onSnapshot,
-    writeBatch, setDoc, getDoc, deleteDoc
+// تصدير جميع الكائنات والدوال للاستخدام
+export { 
+    db, 
+    collection, 
+    addDoc, 
+    updateDoc, 
+    doc, 
+    getDocs, 
+    query, 
+    where, 
+    getDoc, 
+    writeBatch,
+    deleteDoc,
+    setDoc,
+    orderBy
 };

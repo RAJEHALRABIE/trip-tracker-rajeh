@@ -1,27 +1,9 @@
 // ** app.js - الكود الموحد والمصحح **
+// تم إزالة تهيئة Firebase واستبدالها بالاستيراد من firebase-config.js
 
 import { 
-  initializeApp 
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-import { 
-  getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc,
-  writeBatch // تم إزالة onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
-// 1. تكوين Firebase (مرة واحدة فقط)
-const firebaseConfig = {
-  apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
-  authDomain: "trip-tracker-rajeh.firebaseapp.com",
-  projectId: "trip-tracker-rajeh",
-  storageBucket: "trip-tracker-rajeh.appspot.com",
-  messagingSenderId: "1025723412931",
-  appId: "1:1025723412931:web:53a9fa6e1a7a5f43a3dbec",
-  measurementId: "G-J1RBF8H0CC"
-};
-
-// 2. التهيئة (مرة واحدة فقط)
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+    db, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc
+} from "./firebase-config.js"; 
 
 // المتغيرات العامة
 let state = {
@@ -96,7 +78,6 @@ function showNotification(message, type = 'info') {
     </div>
   `;
   
-  // الأنماط مضافة لضمان ظهور الإشعار في كل الحالات
   notification.style.cssText = `
     position: fixed;
     top: 100px;
@@ -186,10 +167,6 @@ async function checkShiftStatus() {
       showNotification(`❌ فشل فحص حالة الشفت الأولي: ${e.message}`, 'error');
   }
   safeHideLoader();
-  
-  if (state.currentShift && !state.isPaused) {
-    // تم حذف منطق المؤقت لتبسيط الحل
-  }
 }
 function updateUIForNoShift() {
   if (elements.noShiftState) elements.noShiftState.style.display = 'block';
@@ -220,8 +197,6 @@ function updateUIForActiveShift() {
     elements.pauseShiftBtn.textContent = state.isPaused ? 'استئناف الشفت' : 'إيقاف مؤقت';
     elements.pauseShiftBtn.className = state.isPaused ? 'btn btn-orange' : 'btn btn-secondary';
   }
-  
-  // لا تقم باستدعاء المؤقت هنا (لتجنب تعقيد حل المشكلة الأساسية)
 }
 
 // -------------------- وظائف الأزرار --------------------
@@ -285,7 +260,7 @@ function initializeApp() {
   try {
     checkShiftStatus();
 
-    // ربط الأحداث بالأزرار (تحقق من وجود العنصر أولاً)
+    // ربط الأحداث بالأزرار (هذا هو الكود الذي يجب أن يعمل بعد حل خطأ التكرار)
     if (elements.startShiftBtn) {
       elements.startShiftBtn.addEventListener('click', startShift);
     }
