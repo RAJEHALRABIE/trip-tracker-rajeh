@@ -1,5 +1,4 @@
-// firebase-config.js — DROP-IN MINIMAL FIX (no other changes)
-// Exact config for trip-tracker-rajeh. Replace your existing file with this one ONLY.
+// firebase-config.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
