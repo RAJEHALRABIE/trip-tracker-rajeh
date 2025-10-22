@@ -16,7 +16,7 @@
       <span>تطبيق تتبع الرحلات للسائقين</span>
     </div>
     <div class="header-logo">
-      <img src="assets/icons/icon-192.png" alt="شعار التطبيق">
+      <img src="assets/icons/icon-192.png" alt="شعار التطبيق" width="46" height="46">
     </div>
   </header>
 
@@ -25,11 +25,11 @@
     <section class="control-section">
       <div class="stats-card">
         <h2 class="card-title">
-          <img src="assets/icons/play.png" alt="تحكم">
-          التحكم بالشفت والرحلة
+          <img src="assets/icons/play.png" alt="تحكم" width="24" height="24">
+          التحكم بالشفت
         </h2>
         
-        <div id="noShiftState" class="shift-state">
+        <div id="noShiftState" class="shift-state" style="display:block;">
           <button id="startShiftBtn" class="btn btn-primary btn-full-width">
             <img src="assets/icons/play.png" alt="بدء" width="24" height="24">
             بدء شفت جديد
@@ -37,79 +37,77 @@
         </div>
 
         <div id="activeShiftState" class="shift-state" style="display:none;">
-          <div class="live-indicator" id="shift-live-indicator">
-            <span class="dot"></span>
+          <div class="shift-live-status">
+            <span id="shift-live-indicator" class="live-dot"></span>
             <span id="shift-status-text">شفت نشط</span>
           </div>
           
-          <div class="shift-info">
-            <div class="info-item">
-              <img src="assets/icons/time.png" alt="وقت" width="24" height="24">
-              <span class="info-label">مدة الشفت</span>
-              <strong id="shiftTime">00:00:00</strong>
-            </div>
-            <div class="info-item">
-              <img src="assets/icons/car.png" alt="رحلات" width="24" height="24">
-              <span class="info-label">الرحلات</span>
-              <strong id="shiftTripCount">0</strong>
-            </div>
-          </div>
-          
-          <div class="shift-buttons">
-            <button id="endShiftBtn" class="btn btn-secondary">
+          <div class="shift-actions">
+            <button id="pauseShiftBtn" class="btn btn-secondary" style="flex:1;">
+              إيقاف مؤقت
+            </button>
+            <button id="endShiftBtn" class="btn btn-danger" style="flex:1;">
               <img src="assets/icons/stop.png" alt="إنهاء" width="24" height="24">
               إنهاء الشفت
             </button>
-            <button id="pauseShiftBtn" class="btn btn-secondary">
-              <img src="assets/icons/stop.png" alt="إيقاف مؤقت" width="24" height="24">
-              إيقاف مؤقت
-            </button>
-            <button id="startTripBtn" class="btn btn-primary">
-              <img src="assets/icons/car.png" alt="بدء رحلة" width="24" height="24">
-              بدء رحلة
-            </button>
-            <button id="endTripBtn" class="btn btn-primary" style="display:none;">
-              <img src="assets/icons/finish-flag.png" alt="إنهاء رحلة" width="24" height="24">
-              إنهاء الرحلة
-            </button>
-          </div>
-
-          <div id="activeTripState" class="active-trip-state" style="display:none;">
-            <p>
-              <img src="assets/icons/live.png" alt="الآن" width="18" height="18">
-              رحلة نشطة حالياً. المسافة: <span id="currentTripDistance">0.00 كم</span>
-            </p>
           </div>
         </div>
-
       </div>
     </section>
 
-    <section class="control-section" id="shift-stats-section" style="display:none;">
+    <section id="shift-stats-section" class="stats-grid-2" style="display:none;">
+      <div class="stat-item stat-shift-time">
+        <div class="stat-icon"><img src="assets/icons/time.png" alt="وقت" width="24" height="24"></div>
+        <div class="stat-info">
+          <div class="stat-value" id="shiftTime">00:00:00</div>
+          <div class="stat-label">مدة الشفت</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon"><img src="assets/icons/cash.png" alt="دخل" width="24" height="24"></div>
+        <div class="stat-info">
+          <div class="stat-value" id="shiftIncome">0 ر.س</div>
+          <div class="stat-label">دخل الشفت</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon"><img src="assets/icons/car.png" alt="رحلات" width="24" height="24"></div>
+        <div class="stat-info">
+          <div class="stat-value" id="shiftTripCount">0</div>
+          <div class="stat-label">عدد الرحلات</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon"><img src="assets/icons/distance.png" alt="مسافة" width="24" height="24"></div>
+        <div class="stat-info">
+          <div class="stat-value" id="shiftDistance">0.00 كم</div>
+          <div class="stat-label">مسافة الشفت</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="control-section">
       <div class="stats-card">
         <h2 class="card-title">
-          <img src="assets/icons/stats-icon.png" alt="إحصائيات" width="24" height="24">
-          إحصائيات الشفت الحالي
+          <img src="assets/icons/car.png" alt="تحكم رحلة" width="24" height="24">
+          التحكم بالرحلة
         </h2>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-icon">
-              <img src="assets/icons/cash.png" alt="دخل">
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="shiftIncome">0 ر.س</div>
-              <div class="stat-label">الدخل الكلي</div>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon">
-              <img src="assets/icons/distance.png" alt="مسافة">
-            </div>
-            <div class="stat-info">
-              <div class="stat-value" id="shiftDistance">0 كم</div>
-              <div class="stat-label">المسافة الكلية</div>
-            </div>
-          </div>
+        
+        <div class="shift-actions">
+          <button id="startTripBtn" class="btn btn-success" style="flex:1;">
+            <img src="assets/icons/flag.png" alt="بدء" width="24" height="24">
+            بدء رحلة
+          </button>
+          
+          <button id="endTripBtn" class="btn btn-primary" style="flex:1; display:none;">
+            <img src="assets/icons/finish-flag.png" alt="إنهاء" width="24" height="24">
+            إنهاء رحلة
+          </button>
+        </div>
+
+        <div id="activeTripState" class="trip-active-info" style="display:none; margin-top: 15px;">
+          <p class="trip-time-value" id="currentTripTime">00:00:00</p>
+          <p class="trip-time-label">مدة الرحلة الحالية</p>
         </div>
       </div>
     </section>
@@ -120,20 +118,17 @@
           <img src="assets/icons/global-stats.png" alt="إحصائيات كلية" width="24" height="24">
           الإحصائيات الكلية
         </h2>
-        <div class="stats-grid">
+        
+        <div class="stats-grid-2">
           <div class="stat-item">
-            <div class="stat-icon">
-              <img src="assets/icons/cash.png" alt="دخل">
-            </div>
+            <div class="stat-icon"><img src="assets/icons/cash.png" alt="دخل كلي" width="24" height="24"></div>
             <div class="stat-info">
               <div class="stat-value" id="totalIncome">0 ر.س</div>
               <div class="stat-label">الدخل الكلي</div>
             </div>
           </div>
           <div class="stat-item">
-            <div class="stat-icon">
-              <img src="assets/icons/distance.png" alt="مسافة">
-            </div>
+            <div class="stat-icon"><img src="assets/icons/distance.png" alt="مسافة كلية" width="24" height="24"></div>
             <div class="stat-info">
               <div class="stat-value" id="totalDistance">0 كم</div>
               <div class="stat-label">المسافة الكلية</div>
@@ -142,7 +137,7 @@
         </div>
       </div>
     </section>
-
+    
     <div id="loading-overlay" class="loading-overlay" style="display:none;">
       <div class="loading-spinner"></div>
       <p>جاري التحميل…</p>
@@ -152,23 +147,23 @@
 
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item active">
-      <img src="assets/icons/home.png" alt="الرئيسية">
+      <img src="assets/icons/home.png" alt="الرئيسية" width="26" height="26">
       <span>الرئيسية</span>
     </a>
     <a href="reports.html" class="nav-item">
-      <img src="assets/icons/reports.png" alt="التقارير">
+      <img src="assets/icons/reports.png" alt="التقارير" width="26" height="26">
       <span>التقارير</span>
     </a>
     <a href="analytics.html" class="nav-item">
-      <img src="assets/icons/analytics.png" alt="التحليل">
+      <img src="assets/icons/analytics.png" alt="التحليل" width="26" height="26">
       <span>تحليل</span>
     </a>
     <a href="settings.html" class="nav-item">
-      <img src="assets/icons/settings.png" alt="الإعدادات">
+      <img src="assets/icons/settings.png" alt="الإعدادات" width="26" height="26">
       <span>الإعدادات</span>
     </a>
   </nav>
 
-<script src="app.js" type="module"></script>
+  <script src="app.js" type="module"></script>
 </body>
 </html>
