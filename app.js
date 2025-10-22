@@ -3,10 +3,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import { 
   getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc,
-  writeBatch // تم إزالة onSnapshot لأنه قد لا يكون مدعومًا في بيئتك
+  writeBatch // تم إزالة onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-// تكوين Firebase (يجب أن يكون صحيحًا)
+// 1. تكوين Firebase (مرة واحدة فقط)
 const firebaseConfig = {
   apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
   authDomain: "trip-tracker-rajeh.firebaseapp.com",
@@ -17,7 +17,7 @@ const firebaseConfig = {
   measurementId: "G-J1RBF8H0CC"
 };
 
-// التهيئة
+// 2. التهيئة (مرة واحدة فقط)
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -54,23 +54,19 @@ const elements = {
   currentTripDistance: document.getElementById('currentTripDistance'),
   totalIncome: document.getElementById('totalIncome'),
   totalDistance: document.getElementById('totalDistance'),
-  // totalTrips: document.getElementById('totalTrips'), // هذا العنصر غير موجود في index.html لذا تم حذفه
   loadingOverlay: document.getElementById('loading-overlay'),
 };
 
 // -------------------- الوظائف المساعدة --------------------
-
 function formatTime(totalSeconds) {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return [hours, minutes, seconds].map(v => v < 10 ? '0' + v : v).join(':');
 }
-
 function formatNumber(number) {
   return (number || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
-
 function safeShowLoader(message = 'جاري التحميل…') {
   try {
     if (elements.loadingOverlay) {
@@ -80,7 +76,6 @@ function safeShowLoader(message = 'جاري التحميل…') {
     }
   } catch {}
 }
-
 function safeHideLoader() {
   try {
     if (elements.loadingOverlay) {
@@ -89,7 +84,6 @@ function safeHideLoader() {
     }
   } catch {}
 }
-
 function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
@@ -136,14 +130,11 @@ function showNotification(message, type = 'info') {
 
 
 // -------------------- إدارة الحالة وتحديث الواجهة --------------------
-
 function updateGlobalStatsDisplay(stats) {
   stats = stats || {}; 
   if (elements.totalIncome) elements.totalIncome.textContent = `${formatNumber(stats.totalIncome || 0)} ر.س`;
   if (elements.totalDistance) elements.totalDistance.textContent = `${formatNumber(stats.totalDistance || 0)} كم`;
 }
-
-// جلب حالة الشفت من Firestore
 async function getShift() {
   try {
     const q = query(state.shiftsRef, where("isActive", "==", true));
@@ -159,8 +150,6 @@ async function getShift() {
     return { id: null, data: null };
   }
 }
-
-// جلب الإحصائيات الكلية
 async function getGlobalStats() {
   try {
     const statsDoc = await getDoc(state.statsRef);
@@ -170,8 +159,6 @@ async function getGlobalStats() {
     return { totalIncome: 0, totalDistance: 0, totalTrips: 0 };
   }
 }
-
-// فحص حالة الشفت وتحديث الواجهة
 async function checkShiftStatus() {
   safeShowLoader("جاري فحص حالة الشفت...");
   try {
@@ -183,14 +170,11 @@ async function checkShiftStatus() {
     if (shift.data) {
       state.currentShift = shift.data;
       state.currentShift.id = shift.id;
-      // التأكد من أن startTime هو كائن Date
       state.shiftStartTime = state.currentShift.startTime && state.currentShift.startTime.toDate ? state.currentShift.startTime.toDate() : new Date();
       state.isPaused = state.currentShift.isPaused || false;
       
-      // التحديث لـ شفت نشط (سواء برحلة نشطة أو بدون)
       updateUIForActiveShift();
     } else {
-      // لا يوجد شفت نشط
       state.currentShift = null;
       state.currentTrip = null;
       updateUIForNoShift();
@@ -201,12 +185,10 @@ async function checkShiftStatus() {
   }
   safeHideLoader();
   
-  // بدء مؤقت الشفت إذا كان نشطًا وغير متوقف مؤقتًا
   if (state.currentShift && !state.isPaused) {
     startShiftTimer();
   }
 }
-
 function updateUIForNoShift() {
   if (elements.noShiftState) elements.noShiftState.style.display = 'block';
   if (elements.activeShiftState) elements.activeShiftState.style.display = 'none';
@@ -215,9 +197,7 @@ function updateUIForNoShift() {
   clearInterval(state.intervalId);
 
   if (elements.shiftTime) elements.shiftTime.textContent = '00:00:00';
-  // ... (إعادة ضبط باقي العناصر)
 }
-
 function updateUIForActiveShift() {
   if (!state.currentShift) return;
   
@@ -227,21 +207,17 @@ function updateUIForActiveShift() {
   if (elements.shiftStatsSection) elements.shiftStatsSection.style.display = 'block';
 
   if (elements.shiftTripCount) elements.shiftTripCount.textContent = state.currentShift.tripCount || 0;
-  // ... (تحديث إحصائيات الشفت)
 
   if (elements.activeTripState) elements.activeTripState.style.display = 'none';
 
-  // التحكم في الأزرار (إظهار الأزرار الأربعة)
   if (elements.endShiftBtn) elements.endShiftBtn.style.display = 'block';
   if (elements.startTripBtn) elements.startTripBtn.style.display = 'block';
-  if (elements.endTripBtn) elements.endTripBtn.style.display = 'none'; // إخفاء زر إنهاء الرحلة مبدئياً
+  if (elements.endTripBtn) elements.endTripBtn.style.display = 'none'; 
   
-  // زر الإيقاف المؤقت
   if (elements.pauseShiftBtn) {
     elements.pauseShiftBtn.textContent = state.isPaused ? 'استئناف الشفت' : 'إيقاف مؤقت';
     elements.pauseShiftBtn.className = state.isPaused ? 'btn btn-orange' : 'btn btn-secondary';
   }
-  // ... (تحديث مؤشر الحالة)
   
   if (!state.isPaused) {
     startShiftTimer();
@@ -250,18 +226,14 @@ function updateUIForActiveShift() {
     updateShiftTimeDisplay();
   }
 }
-
-// دالة المؤقت
 function startShiftTimer() {
     // ... (منطق المؤقت)
 }
-
 function updateShiftTimeDisplay() {
     // ... (منطق عرض الوقت)
 }
 
 // -------------------- وظائف الأزرار --------------------
-
 async function startShift() {
   safeShowLoader("جاري بدء شفت جديد...");
   try {
@@ -276,7 +248,7 @@ async function startShift() {
       currentTripId: null,
     };
     
-    // **الخطوة الحرجة: محاولة الاتصال بـ Firebase**
+    // محاولة الاتصال بـ Firebase
     const docRef = await addDoc(state.shiftsRef, newShift);
     
     // التحديث بعد نجاح الاتصال
@@ -289,7 +261,6 @@ async function startShift() {
     showNotification("✅ تم بدء الشفت بنجاح.", 'success');
 
   } catch (error) {
-    // **إذا فشلت هذه الخطوة، سيظهر هذا الإشعار الأحمر الواضح**
     console.error("❌ خطأ في بدء الشفت (Firebase/Network):", error);
     showNotification(`❌ فشل بدء الشفت. تأكد من اتصالك أو إعدادات Firebase: ${error.message || "خطأ غير معروف"}`, 'error');
   }
@@ -300,14 +271,12 @@ async function startShift() {
 async function endShift() { showNotification("🚧 إنهاء الشفت قيد التطوير...", 'info'); }
 async function startTrip() { 
     showNotification("🚧 بدء الرحلة قيد التطوير...", 'info');
-    // لغرض اختبار الواجهة، يمكن إظهار زر إنهاء الرحلة هنا مؤقتاً
     if(elements.endTripBtn) elements.endTripBtn.style.display = 'block';
     if(elements.startTripBtn) elements.startTripBtn.style.display = 'none';
     if(elements.activeTripState) elements.activeTripState.style.display = 'block';
 }
 async function endTrip() { 
     showNotification("🚧 إنهاء الرحلة قيد التطوير...", 'info'); 
-    // لغرض اختبار الواجهة
     if(elements.endTripBtn) elements.endTripBtn.style.display = 'none';
     if(elements.startTripBtn) elements.startTripBtn.style.display = 'block';
     if(elements.activeTripState) elements.activeTripState.style.display = 'none';
@@ -344,7 +313,6 @@ function initializeApp() {
     
   } catch (e) {
       console.error("❌ خطأ فادح أثناء تهيئة التطبيق:", e);
-      // هذا إشعار عام يظهر إذا فشل أي جزء من initializeApp (مثل خطأ في الاستيراد)
       showNotification(`❌ خطأ فادح أثناء التحميل. تحقق من ملف app.js: ${e.message}`, 'error');
   }
 }
