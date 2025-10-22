@@ -4,7 +4,7 @@
   "description": "تطبيق متابعة الرحلات والشفتات للسائقين",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d1117",
+  "background_color": "#f7f8fb",  /* تم التعديل إلى لون فاتح */
   "theme_color": "#6b4de6",
   "orientation": "portrait-primary",
   "icons": [

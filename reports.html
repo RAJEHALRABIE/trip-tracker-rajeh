@@ -11,7 +11,7 @@
 </head>
 <body>
   <header class="main-header">
-    <a class="header-back-btn" href="index.html">←</a>
+    <a class="header-back-btn" href="index.html">→</a>
     <div class="header-title">
       <h1>التقارير</h1>
       <span>عرض وتعديل جميع الرحلات</span>
@@ -28,43 +28,36 @@
         قائمة الرحلات
       </h2>
       <div id="empty-state" class="card-message" style="display:none;">
-        🗒️ لا توجد رحلات مسجلة بعد.<br>
-        <small>ابدأ شفت جديد وسجل رحلاتك الأولى.</small>
+        <img src="assets/icons/search.png" alt="لا يوجد رحلات" width="40" height="40">
+        <p>لم تقم بإكمال أي رحلات بعد.</p>
       </div>
-      <div id="trips-list" class="trips-list"></div>
+      <div id="trips-list" class="trip-list">
+        </div>
     </section>
-  </main>
 
-  <!-- نافذة التحميل -->
-  <div id="loading-overlay" class="loading-overlay" style="display:none;">
-    <div class="loading-spinner"></div>
-    <p>جاري تحميل التقارير…</p>
-  </div>
-
-  <!-- نافذة تعديل الرحلة -->
-  <div id="edit-modal" class="modal-overlay">
-    <div class="stats-card" style="max-width:440px; width:92%;">
-      <h2 class="card-title">
-        <img src="assets/icons/edit.png" alt="تعديل" width="24" height="24">
-        تعديل الرحلة
-      </h2>
-      <label for="edit-fare">الأجرة (ريال سعودي)</label>
-      <input 
-        id="edit-fare" 
-        type="number" 
-        min="0" 
-        step="0.5" 
-        placeholder="0.00"
-        inputmode="decimal"
-      >
-      <div style="display:flex; gap:12px; margin-top:20px; justify-content:flex-end;">
-        <button id="edit-cancel" class="btn btn-secondary">إلغاء</button>
-        <button id="edit-save" class="btn btn-primary">حفظ التعديل</button>
+    <div id="edit-modal" class="modal-overlay" style="display:none;">
+      <div class="stats-card" style="max-width:440px; width:92%;">
+        <h2 class="card-title">
+          <img src="assets/icons/edit.png" alt="تعديل" width="24" height="24">
+          تعديل الرحلة
+        </h2>
+        <label for="edit-fare">الأجرة (ريال سعودي)</label>
+        <input 
+          id="edit-fare" 
+          type="number" 
+          min="0" 
+          step="0.5" 
+          placeholder="0.00"
+          inputmode="decimal"
+        >
+        <div style="display:flex; gap:12px; margin-top:20px; justify-content:flex-end;">
+          <button id="edit-cancel" class="btn btn-secondary">إلغاء</button>
+          <button id="edit-save" class="btn btn-primary">حفظ التعديل</button>
+        </div>
       </div>
     </div>
-  </div>
+  </main>
 
-  <!-- شريط التنقل السفلي -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
       <img src="assets/icons/home.png" alt="الرئيسية" width="26" height="26">
@@ -84,6 +77,12 @@
     </a>
   </nav>
 
+  <div id="loading-overlay" class="loading-overlay" style="display:none;">
+    <div class="loading-spinner"></div>
+    <p>جاري تحميل البيانات...</p>
+  </div>
+  
+  <script type="module" src="firebase-config.js"></script>
   <script type="module" src="reports.js"></script>
 </body>
 </html>

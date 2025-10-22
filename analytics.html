@@ -27,55 +27,56 @@
   </header>
 
   <main class="main-content">
-    <!-- الرسم البياني -->
+    <div class="export-buttons">
+      <button id="export-csv" class="btn btn-secondary">
+        <img src="assets/icons/csv.png" alt="CSV" width="24" height="24">
+        تصدير CSV
+      </button>
+      <button id="export-pdf" class="btn btn-secondary">
+        <img src="assets/icons/pdf.png" alt="PDF" width="24" height="24">
+        تصدير PDF
+      </button>
+    </div>
+
     <section class="stats-card">
       <h2 class="card-title">
-        <img src="assets/icons/analytics.png" alt="تحليل" width="24" height="24">
-        الدخل اليومي (آخر 30 يوم)
+        <img src="assets/icons/analytics.png" alt="رسم بياني">
+        تطور الدخل الشهري
       </h2>
-      <div style="height:280px;">
+      <div id="no-shifts-message" class="card-message" style="display:none;">
+        <img src="assets/icons/search.png" alt="لا يوجد بيانات" width="40" height="40">
+        <p>لا توجد بيانات كافية لعرض التحليل البياني.</p>
+      </div>
+      <div class="chart-container">
         <canvas id="income-chart"></canvas>
-      </div>
-      <div id="no-shifts-message" class="card-message" style="display:none; margin-top:12px;">
-        📊 لا توجد بيانات كافية للعرض.<br>
-        <small>استمر في تسجيل الرحلات لرؤية التحليلات.</small>
-      </div>
-      <div style="display:flex; gap:12px; margin-top:16px;">
-        <button id="export-csv" class="btn btn-secondary">
-          <img src="assets/icons/csv.png" alt="CSV" width="20" height="20">
-          تصدير CSV
-        </button>
-        <button id="export-pdf" class="btn btn-secondary">
-          <img src="assets/icons/download.png" alt="PDF" width="20" height="20">
-          تصدير PDF
-        </button>
       </div>
     </section>
 
-    <!-- جدول الشفتات -->
-    <section class="stats-card table-container">
+    <section class="stats-card">
       <h2 class="card-title">
-        <img src="assets/icons/reports.png" alt="شفتات" width="24" height="24">
-        جدول الشفتات المكتملة
+        <img src="assets/icons/reports.png" alt="بيانات">
+        بيانات الشفتات المكتملة
       </h2>
-      <table id="shifts-table">
-        <thead>
-          <tr>
-            <th>تاريخ البدء</th>
-            <th>وقت البدء</th>
-            <th>المدة الفعالة</th>
-            <th>الدخل (ر.س)</th>
-            <th>عدد الرحلات</th>
-            <th>المسافة (كم)</th>
-            <th>متوسط/ساعة</th>
-          </tr>
-        </thead>
-        <tbody id="shifts-table-body"></tbody>
-      </table>
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>تاريخ البدء</th>
+              <th>وقت البدء</th>
+              <th>المدة الفعالة</th>
+              <th>الدخل (ر.س)</th>
+              <th>عدد الرحلات</th>
+              <th>المسافة (كم)</th>
+              <th>متوسط/ساعة</th>
+            </tr>
+          </thead>
+          <tbody id="shifts-table-body">
+            </tbody>
+        </table>
+      </div>
     </section>
   </main>
 
-  <!-- شريط التنقل السفلي -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
       <img src="assets/icons/home.png" alt="الرئيسية" width="26" height="26">
@@ -95,12 +96,11 @@
     </a>
   </nav>
 
-  <!-- مكتبات خارجية -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
-  <!-- ملف التحليلات -->
+  
+  <script type="module" src="firebase-config.js"></script>
   <script type="module" src="analytics.js"></script>
 </body>
 </html>

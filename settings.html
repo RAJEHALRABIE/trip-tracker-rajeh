@@ -27,58 +27,74 @@
   </header>
 
   <main class="main-content">
-    <!-- الأهداف اليومية -->
     <section class="stats-card settings-card">
       <h2 class="card-title">
-        <img src="assets/icons/stats-icon.png" alt="أهداف" width="24" height="24">
-        الأهداف اليومية
+        <img src="assets/icons/target.png" alt="أهداف" width="24" height="24">
+        تحديد الأهداف اليومية
       </h2>
-      
       <div class="setting-item">
-        <label for="income-goal">الهدف المالي اليومي (ريال سعودي)</label>
-        <input type="number" id="income-goal" min="0" step="10" value="300" placeholder="300">
-        
-        <label for="hours-goal">الهدف الزمني اليومي (ساعات)</label>
-        <input type="number" id="hours-goal" min="0" step="0.5" value="8" placeholder="8">
-        
-        <button id="save-goals" class="btn btn-primary" style="margin-top: 16px;">
-          <img src="assets/icons/save.png" alt="حفظ" width="20" height="20">
+        <label for="income-goal">هدف الدخل اليومي (ريال سعودي)</label>
+        <div class="input-container">
+          <input 
+            id="income-goal" 
+            type="number" 
+            min="0" 
+            step="50" 
+            placeholder="500"
+          >
+          <span class="input-icon" style="left: 10px;">ر.س</span>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label for="hours-goal">هدف ساعات العمل اليومية (ساعة)</label>
+        <div class="input-container">
+          <input 
+            id="hours-goal" 
+            type="number" 
+            min="1" 
+            step="0.5" 
+            placeholder="8.0"
+          >
+          <span class="input-icon" style="left: 10px;">س</span>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button id="save-goals" class="btn btn-primary">
+          <img src="assets/icons/save.png" alt="حفظ" width="24" height="24">
           حفظ الأهداف
         </button>
       </div>
     </section>
 
-    <!-- إدارة البيانات -->
     <section class="stats-card settings-card">
       <h2 class="card-title">
-        <img src="assets/icons/settings.png" alt="إعدادات" width="24" height="24">
+        <img src="assets/icons/upload.png" alt="بيانات" width="24" height="24">
         إدارة البيانات
       </h2>
       
       <div class="setting-item">
-        <h3>استيراد بيانات (JSON)</h3>
-        <p>استعادة نسخة احتياطية من بياناتك. يجب أن يكون الملف بصيغة JSON متوافقة.</p>
-        <button id="import-btn" class="btn btn-primary">
-          <img src="assets/icons/upload.png" alt="استيراد" width="20" height="20">
-          استيراد ملف
-        </button>
+        <label for="import-file-input" style="font-weight: 700;">استيراد بيانات JSON</label>
+        <p style="margin-top: 0; font-size: 0.85rem; color: var(--text-muted);">يمكنك استيراد بيانات الشفتات والرحلات من ملف JSON.</p>
         <input type="file" id="import-file-input" accept=".json" style="display: none;">
+        <button id="import-btn" class="btn btn-secondary">
+          <img src="assets/icons/upload.png" alt="استيراد" width="24" height="24">
+          اختيار ملف للاستيراد
+        </button>
       </div>
-
-      <div class="setting-item" style="border-top: 1px solid var(--border); padding-top: 20px;">
-        <h3>مسح كل البيانات (خطر)</h3>
-        <p>سيتم حذف جميع الشفتات والرحلات المسجلة نهائياً. لا يمكن التراجع عن هذا الإجراء.</p>
+      
+      <div class="setting-item" style="border-top: 1px solid var(--border); padding-top: 15px;">
+        <label style="font-weight: 700; color: var(--red);">حذف جميع البيانات</label>
+        <p style="margin-top: 0; font-size: 0.85rem; color: var(--text-muted);">سيؤدي هذا الإجراء إلى حذف جميع الشفتات والرحلات بشكل نهائي.</p>
         <button id="delete-all-btn" class="btn btn-danger">
-          <img src="assets/icons/delete.png" alt="مسح" width="20" height="20">
-          مسح كل البيانات
+          <img src="assets/icons/delete.png" alt="حذف" width="24" height="24">
+          مسح جميع البيانات
         </button>
       </div>
     </section>
 
-    <!-- معلومات التطبيق -->
     <section class="stats-card settings-card">
       <h2 class="card-title">
-        <img src="assets/icons/info.png" alt="معلومات" width="24" height="24">
+        <img src="assets/icons/details.png" alt="معلومات" width="24" height="24">
         معلومات التطبيق
       </h2>
       
@@ -103,7 +119,6 @@
     </section>
   </main>
 
-  <!-- شريط التنقل السفلي -->
   <nav class="bottom-nav">
     <a href="index.html" class="nav-item">
       <img src="assets/icons/home.png" alt="الرئيسية" width="26" height="26">
@@ -123,6 +138,7 @@
     </a>
   </nav>
 
+  <script type="module" src="firebase-config.js"></script>
   <script type="module" src="settings.js"></script>
 </body>
 </html>
