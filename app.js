@@ -1,7 +1,7 @@
 // app.js - المصحح والنهائي
 
 import { 
-  db, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc, writeBatch 
+  db, collection, addDoc, updateDoc, doc, getDocs, query, where, getDoc, writeBatch, orderBy 
 } from "./firebase-config.js"; 
 import { safeShowLoader, safeHideLoader, showNotification, formatTime } from "./utils.js"; 
 
@@ -20,6 +20,8 @@ const elements = {
 
   noShiftState: document.getElementById('noShiftState'),
   activeShiftState: document.getElementById('activeShiftState'),
+  
+  // العناصر الجديدة للتحكم في حالة الرحلة داخل الشفت
   noTripState: document.getElementById('noTripState'),
   activeTripState: document.getElementById('activeTripState'),
   
@@ -46,29 +48,32 @@ let state = {
 
 function updateUIForActiveShift() {
     const isActive = !!state.currentShift; 
-    const isTripActive = !!state.currentTrip;
+    const isTripActive = !!state.currentTrip; 
     
-    // حالة الشفت (نشط / غير نشط)
+    // 1. حالة الشفت (نشط / غير نشط)
     if(elements.noShiftState) elements.noShiftState.style.display = isActive ? 'none' : 'block';
     if(elements.activeShiftState) elements.activeShiftState.style.display = isActive ? 'block' : 'none';
 
     if (isActive) {
-        // حالة الرحلة (نشطة / غير نشطة)
+        // 2. حالة الرحلة (نشطة / غير نشطة)
+        // **التصحيح الرئيسي هنا لضمان ظهور زر إنهاء الرحلة**
         if(elements.noTripState) elements.noTripState.style.display = isTripActive ? 'none' : 'block';
         if(elements.activeTripState) elements.activeTripState.style.display = isTripActive ? 'block' : 'none';
 
-        // تحديث إحصائيات الشفت
+        // 3. تحديث إحصائيات الشفت
         if(elements.shiftIncome) elements.shiftIncome.textContent = `${(state.currentShift.totalIncome || 0).toFixed(2)} ر.س`;
         if(elements.shiftTrips) elements.shiftTrips.textContent = `${state.currentShift.tripCount || 0}`;
 
-        // حالة الإيقاف المؤقت
+        // 4. حالة الإيقاف المؤقت
         if (elements.pauseShiftBtn) {
             elements.pauseShiftBtn.textContent = state.isPaused ? 'استئناف الشفت' : 'إيقاف مؤقت';
             elements.pauseShiftBtn.classList.toggle('btn-secondary', state.isPaused);
             elements.pauseShiftBtn.classList.toggle('btn-primary', !state.isPaused);
+            // تعطيل زر الإيقاف إذا كانت هناك رحلة نشطة
+            elements.pauseShiftBtn.disabled = isTripActive;
         }
-
-        // تحديث حالة الشفت الرئيسية
+        
+        // 5. تحديث حالة الشفت الرئيسية
         if(elements.shiftStatus) elements.shiftStatus.textContent = isTripActive 
             ? 'رحلة نشطة' 
             : state.isPaused ? 'شفت موقف مؤقتاً' : 'شفت نشط';
@@ -110,7 +115,7 @@ async function fetchGlobalStats() {
 }
 
 
-// -------------------- معالجة حالة الشفت (التركيز الأساسي) --------------------
+// -------------------- معالجة حالة الشفت والرحلة --------------------
 
 async function checkActiveTrip(shiftId) {
     try {
@@ -150,13 +155,12 @@ async function checkShiftStatus() {
             await checkActiveTrip(state.currentShift.id); 
 
             startTimer();
-            showNotification(`✅ تم استئناف الشفت النشط.`, 'success');
+            // لا تظهر إشعارًا عند التحقق التلقائي لتجنب الإزعاج
         }
 
     } catch (error) {
         console.error("❌ خطأ حرج في التحقق من حالة الشفت:", error);
         showNotification("❌ فشل الاتصال بقاعدة البيانات. تحقق من اتصالك.", 'error');
-        // إذا فشل التحقق، نفترض عدم وجود شفت فعال محلياً لتجنب التناقض
         state.currentShift = null; 
         state.currentTrip = null; 
     }
@@ -176,7 +180,6 @@ async function startShift() {
     safeHideLoader();
 
     if (state.currentShift) {
-        // حل مشكلة التناقض: إذا وجد شفت بعد التحقق، نمنع البدء
         showNotification("⚠️ يوجد شفت فعال بالفعل! قم بإنهائه أولاً.", 'error');
         return;
     }
@@ -237,7 +240,7 @@ async function endShift() {
         showNotification(`❌ فشل إنهاء الشفت. تم إزالة الشفت محلياً: ${error.message}`, 'error');
     }
     
-    // إعادة ضبط الحالة والمتغيرات محلياً في كل الأحوال (الحل لمنع العودة للحالة العالقة)
+    // إعادة ضبط الحالة والمتغيرات محلياً في كل الأحوال
     state.currentShift = null;
     state.currentTrip = null;
     state.shiftStartTime = null;
@@ -390,7 +393,7 @@ function initializeApp() {
     checkShiftStatus(); 
 
     if (elements.startShiftBtn) elements.startShiftBtn.addEventListener('click', startShift);
-    if (elements.endShiftBtn) elements.endShiftBtn.addEventListener('click', endShift);
+    if (elements.endShiftBtn) elements.endTripBtn.addEventListener('click', endTrip); // تم التصحيح: ربط زر endTripBtn بالدالة endTrip
     if (elements.startTripBtn) elements.startTripBtn.addEventListener('click', startTrip);
     if (elements.endTripBtn) elements.endTripBtn.addEventListener('click', endTrip);
     if (elements.pauseShiftBtn) elements.pauseShiftBtn.addEventListener('click', togglePauseShift);
