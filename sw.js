@@ -1,94 +1,81 @@
-const CACHE_NAME = 'trip-tracker-v16'; 
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/reports.html',
-  '/analytics.html',
-  '/settings.html',
-  '/style.css',
-  '/app.js',
-  '/reports.js',
-  '/analytics.js',
-  '/settings.js',
+/* Trip Tracker — Service Worker (2025-10-23) */
+const CACHE_VERSION = 'TT_CACHE_v1_2025-10-23';
+const STATIC_ASSETS = [
+  '/', '/index.html',
+  '/style.css', '/app.js', '/utils.js',
   '/manifest.json',
-  'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap',
-  'https://cdn.jsdelivr.net/npm/chart.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+  '/reports.html','/reports.js',
+  '/analytics.html','/analytics.js',
+  '/settings.html','/settings.js',
+  '/offline.html', '/privacy.html',
+  '/assets/icons/icon-192.png', '/assets/icons/icon-512.png'
 ];
 
-// قائمة الأيقونات الأساسية الموجودة في المشروع (تمت مراجعتها)
-const essentialIcons = [
-  'home.png', 'reports.png', 'analytics.png', 'settings.png',
-  'play.png', 'stop.png', 'car.png', 'finish-flag.png', 'time.png',
-  'cash.png', 'distance.png', 'live.png', 'download.png',
-  'edit.png', 'upload.png', 'delete.png', 'search.png',
-  'details.png', 'stats-icon.png', 'global-stats.png',
-  'calendar.png', 'clock.png', 'csv.png', 'pdf.png',
-  'icon-192.png', 'icon-512.png'
-];
-
-// إضافة مسارات الأيقونات إلى الكاش
-urlsToCache.push(...essentialIcons.map(icon => `assets/icons/${icon}`));
-
-// التثبيت
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: التثبيت');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: تخزين الملفات في الكاش');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_VERSION).then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// التنشيط
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: التنشيط');
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: حذف الكاش القديم:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => (k !== CACHE_VERSION ? caches.delete(k) : null)));
+    await self.clients.claim();
+  })());
 });
 
-// الجلب (Fetch)
-self.addEventListener('fetch', (event) => {
-  // تجاهل طلبات Firebase وخرائط Google
-  if (event.request.url.includes('firebase') || 
-      event.request.url.includes('googleapis') ||
-      event.request.url.includes('gstatic')) {
-    return fetch(event.request);
+async function networkFirst(req, timeoutMs = 4000) {
+  const cache = await caches.open(CACHE_VERSION);
+  try {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    const fresh = await fetch(req, { signal: controller.signal });
+    clearTimeout(id);
+    if (fresh && fresh.ok) cache.put(req, fresh.clone());
+    return fresh;
+  } catch {
+    const cached = await cache.match(req);
+    if (cached) return cached;
+    if (req.mode === 'navigate') return caches.match('/offline.html');
+    throw new Error('Network & cache failed');
   }
+}
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
-        
-        return fetch(event.request).then((fetchResponse) => {
-          if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
-            return fetchResponse;
-          }
+async function cacheFirst(req) {
+  const cache = await caches.open(CACHE_VERSION);
+  const cached = await cache.match(req);
+  if (cached) return cached;
+  const fresh = await fetch(req);
+  if (fresh && fresh.ok) cache.put(req, fresh.clone());
+  return fresh;
+}
 
-          const responseToCache = fetchResponse.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
 
-          return fetchResponse;
-        });
-      })
-  );
+  const url = new URL(request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+  if (isSameOrigin && STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+  event.respondWith(networkFirst(request));
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('install', () => {
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+    for (const client of clients) client.postMessage({ type: 'NEW_VERSION_AVAILABLE' });
+  });
 });
