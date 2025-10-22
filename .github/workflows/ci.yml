@@ -1,0 +1,67 @@
+name: CI & Deploy (Netlify)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dev deps (if any)
+        run: |
+          if [ -f package.json ]; then
+            npm ci || npm i
+          else
+            echo "No package.json found. Skipping install."
+          fi
+
+      - name: Smoke check — essential files exist
+        run: |
+          ls -la
+          for f in index.html app.js style.css manifest.json sw.js; do
+            if [ ! -f "$f" ]; then echo "Missing $f"; exit 1; fi
+          done
+          echo "Smoke check OK"
+
+  deploy-netlify:
+    needs: build-test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Netlify Deploy (Production)
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=. --prod --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  preview-netlify:
+    needs: build-test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Netlify Deploy (Preview)
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=. --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
