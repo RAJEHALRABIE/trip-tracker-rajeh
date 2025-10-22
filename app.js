@@ -1,4 +1,6 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import { 
+  initializeApp 
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import { 
   getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where, orderBy, onSnapshot,
   writeBatch
@@ -19,72 +21,71 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// المتغيرات العالمية للحالة
-let currentShift = null;
-let currentTrip = null;
-let shiftTimerInterval = null;
-let tripTimerInterval = null;
-let goals = { income: 0, hours: 0 };
-let totalStats = { income: 0, distance: 0 };
+// المتغيرات العامة
+let state = {
+  currentShift: null,
+  currentTrip: null,
+  shiftStartTime: null,
+  tripStartTime: null,
+  intervalId: null,
+  shiftsRef: collection(db, "shifts"),
+  tripsRef: collection(db, "trips"),
+  statsRef: doc(db, "stats", "global"),
+  isPaused: false,
+};
 
 // العناصر
 const elements = {
-  // أزرار التحكم
   startShiftBtn: document.getElementById('startShiftBtn'),
   endShiftBtn: document.getElementById('endShiftBtn'),
   startTripBtn: document.getElementById('startTripBtn'),
   endTripBtn: document.getElementById('endTripBtn'),
-  
-  // حاويات حالات الأزرار (لتنفيذ منطق ظهور الأزرار الأربعة)
-  noShiftState: document.getElementById('noShiftState'),
+  // عناصر حالة الشفت (جديدة/مضافة)
+  noShiftState: document.getElementById('noShiftState'), 
   activeShiftState: document.getElementById('activeShiftState'),
+  pauseShiftBtn: document.getElementById('pauseShiftBtn'),
   activeTripState: document.getElementById('activeTripState'),
 
-  // معلومات الشفت النشط
-  shiftTimer: document.getElementById('shiftTimer'),
-  currentShiftIncome: document.getElementById('currentShiftIncome'),
-  currentShiftTrips: document.getElementById('currentShiftTrips'),
-  currentShiftDistance: document.getElementById('currentShiftDistance'),
-
-  // معلومات الرحلة النشطة
-  tripTimer: document.getElementById('tripTimer'),
-  tripStartLocation: document.getElementById('tripStartLocation'),
+  // معلومات الشفت
+  shiftTime: document.getElementById('shiftTime'),
+  shiftTripCount: document.getElementById('shiftTripCount'),
+  shiftIncome: document.getElementById('shiftIncome'),
+  shiftDistance: document.getElementById('shiftDistance'),
+  shiftLiveIndicator: document.getElementById('shift-live-indicator'),
+  shiftStatusText: document.getElementById('shift-status-text'),
+  shiftStatsSection: document.getElementById('shift-stats-section'),
   currentTripDistance: document.getElementById('currentTripDistance'),
 
-  // الأهداف والإحصائيات الكلية
-  incomeGoalCurrent: document.getElementById('incomeGoalCurrent'),
-  incomeGoalTarget: document.getElementById('incomeGoalTarget'),
-  incomeGoalProgress: document.getElementById('incomeGoalProgress'),
-  hoursGoalCurrent: document.getElementById('hoursGoalCurrent'),
-  hoursGoalTarget: document.getElementById('hoursGoalTarget'),
-  hoursGoalProgress: document.getElementById('hoursGoalProgress'),
+  // الإحصائيات الكلية
   totalIncome: document.getElementById('totalIncome'),
   totalDistance: document.getElementById('totalDistance'),
-  
-  // النوافذ المنبثقة
+  totalTrips: document.getElementById('totalTrips'), // افتراض وجودها في index.html
+
+  // اللودر والإشعارات
   loadingOverlay: document.getElementById('loading-overlay'),
-  fareModal: document.getElementById('fare-modal'),
-  fareInput: document.getElementById('fare-input'),
-  fareConfirmBtn: document.getElementById('fare-confirm'),
-  fareCancelBtn: document.getElementById('fare-cancel'),
-  shiftEndModal: document.getElementById('shift-end-modal'),
-  shiftEndConfirmBtn: document.getElementById('shift-end-confirm'),
-  shiftEndCancelBtn: document.getElementById('shift-end-cancel'),
 };
 
-// ----------------------------------------------------
-// الدوال المساعدة (Helpers)
-// ----------------------------------------------------
+// -------------------- الوظائف المساعدة --------------------
 
-// إظهار اللودر
-function safeShowLoader() {
+function formatTime(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map(v => v < 10 ? '0' + v : v).join(':');
+}
+
+function formatNumber(number) {
+  return (number || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function safeShowLoader(message = 'جاري التحميل…') {
   try {
+    elements.loadingOverlay.querySelector('p').textContent = message;
     elements.loadingOverlay.style.display = 'flex';
     elements.loadingOverlay.classList.add('show');
   } catch {}
 }
 
-// إخفاء اللودر
 function safeHideLoader() {
   try {
     elements.loadingOverlay.style.display = 'none';
@@ -92,15 +93,6 @@ function safeHideLoader() {
   } catch {}
 }
 
-// تنسيق الوقت
-function formatDuration(seconds) {
-  const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-  const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-  const s = String(Math.floor(seconds % 60)).padStart(2, '0');
-  return `${h}:${m}:${s}`;
-}
-
-// عرض الإشعارات
 function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
@@ -138,412 +130,262 @@ function showNotification(message, type = 'info') {
     notification.style.transform = 'translateY(0)';
     notification.style.opacity = '1';
   }, 10);
-  
-  // إخفاء الإشعار بعد 4 ثوانٍ
+
+  // إخفاء الإشعار
   setTimeout(() => {
     notification.style.transform = 'translateY(-20px)';
     notification.style.opacity = '0';
     notification.addEventListener('transitionend', () => notification.remove());
-  }, 4000);
+  }, 5000);
 }
 
 
-// ----------------------------------------------------
-// دوال تحديث الواجهة (UI Updates)
-// ----------------------------------------------------
+// -------------------- إدارة الحالة --------------------
 
-/**
- * تحديث واجهة بطاقة التحكم لعرض الأزرار المناسبة للحالة.
- */
-function updateControlCard() {
-  // إخفاء جميع حالات الأزرار أولاً
-  elements.noShiftState.style.display = 'none';
+// تحديث الإحصائيات الكلية في الواجهة
+function updateGlobalStatsDisplay(stats) {
+  stats = stats || {}; 
+  elements.totalIncome.textContent = `${formatNumber(stats.totalIncome || 0)} ر.س`;
+  elements.totalDistance.textContent = `${formatNumber(stats.totalDistance || 0)} كم`;
+  elements.totalTrips.textContent = `${formatNumber(stats.totalTrips || 0)} رحلات`;
+}
+
+// دالة لجلب حالة الشفت من Firestore
+async function getShift() {
+  try {
+    const q = query(state.shiftsRef, where("isActive", "==", true));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const shiftDoc = querySnapshot.docs[0];
+      return { id: shiftDoc.id, data: shiftDoc.data() };
+    }
+    return { id: null, data: null };
+  } catch (error) {
+    console.error("❌ خطأ في جلب الشفت النشط:", error);
+    showNotification("فشل جلب الشفت النشط. تأكد من اتصالك بالشبكة.", 'error');
+    return { id: null, data: null };
+  }
+}
+
+// دالة لجلب الإحصائيات الكلية
+async function getGlobalStats() {
+  try {
+    const statsDoc = await getDoc(state.statsRef);
+    return statsDoc.exists() ? statsDoc.data() : { totalIncome: 0, totalDistance: 0, totalTrips: 0 };
+  } catch (error) {
+    console.error("❌ خطأ في جلب الإحصائيات الكلية:", error);
+    return { totalIncome: 0, totalDistance: 0, totalTrips: 0 };
+  }
+}
+
+// دالة لفحص حالة الشفت وتحديث الواجهة
+async function checkShiftStatus() {
+  safeShowLoader("جاري فحص حالة الشفت...");
+  const shift = await getShift();
+  const stats = await getGlobalStats();
+  
+  updateGlobalStatsDisplay(stats);
+
+  if (shift.data) {
+    state.currentShift = shift.data;
+    state.currentShift.id = shift.id;
+    state.shiftStartTime = state.currentShift.startTime.toDate();
+    state.isPaused = state.currentShift.isPaused || false;
+    
+    // فحص حالة الرحلة
+    if (state.currentShift.currentTripId) {
+      // إذا كان هناك رحلة نشطة
+      const tripQ = query(state.tripsRef, where("shiftId", "==", state.currentShift.id), where("isActive", "==", true));
+      const tripSnapshot = await getDocs(tripQ);
+      if (!tripSnapshot.empty) {
+        state.currentTrip = { id: tripSnapshot.docs[0].id, data: tripSnapshot.docs[0].data() };
+        state.tripStartTime = state.currentTrip.data.startTime.toDate();
+        updateUIForActiveTrip();
+      } else {
+        // حالة شفت نشط لكن بدون رحلة نشطة (خطأ في البيانات أو تم إنهاء الرحلة بنجاح)
+        state.currentTrip = null;
+        updateUIForActiveShift();
+      }
+    } else {
+      // شفت نشط بدون رحلة
+      state.currentTrip = null;
+      updateUIForActiveShift();
+    }
+  } else {
+    // لا يوجد شفت نشط
+    state.currentShift = null;
+    state.currentTrip = null;
+    updateUIForNoShift();
+  }
+
+  safeHideLoader();
+  // بدء مؤقت الشفت
+  if (state.currentShift && !state.isPaused) {
+    startShiftTimer();
+  }
+}
+
+
+// -------------------- تحديثات الواجهة --------------------
+
+// تحديث الواجهة لحالة لا يوجد شفت
+function updateUIForNoShift() {
+  // /////////////////////////////////////////
+  // إصلاح منطق عرض/إخفاء الحاويات
+  elements.noShiftState.style.display = 'block';
   elements.activeShiftState.style.display = 'none';
+  // /////////////////////////////////////////
+
+  // إخفاء قسم إحصائيات الشفت
+  elements.shiftStatsSection.style.display = 'none';
+  clearInterval(state.intervalId);
+
+  // إعادة ضبط قيم الشفت
+  elements.shiftTime.textContent = '00:00:00';
+  elements.shiftTripCount.textContent = '0';
+  elements.shiftIncome.textContent = '0 ر.س';
+  elements.shiftDistance.textContent = '0 كم';
+}
+
+// تحديث الواجهة لحالة شفت نشط
+function updateUIForActiveShift() {
+  if (!state.currentShift) return;
+  
+  // /////////////////////////////////////////
+  // إصلاح منطق عرض/إخفاء الحاويات
+  elements.noShiftState.style.display = 'none';
+  elements.activeShiftState.style.display = 'block';
+  // /////////////////////////////////////////
+
+  // إظهار قسم إحصائيات الشفت
+  elements.shiftStatsSection.style.display = 'block';
+
+  // تحديث إحصائيات الشفت
+  elements.shiftTripCount.textContent = state.currentShift.tripCount || 0;
+  elements.shiftIncome.textContent = `${formatNumber(state.currentShift.totalIncome || 0)} ر.س`;
+  elements.shiftDistance.textContent = `${formatNumber(state.currentShift.totalDistance || 0)} كم`;
+
+  // إخفاء حالة الرحلة النشطة
   elements.activeTripState.style.display = 'none';
 
-  // إيقاف جميع العدادات
-  if (shiftTimerInterval) clearInterval(shiftTimerInterval);
-  if (tripTimerInterval) clearInterval(tripTimerInterval);
+  // التحكم في أزرار الشفت النشط
+  elements.endShiftBtn.style.display = 'block';
+  elements.startTripBtn.style.display = 'block';
+  elements.endTripBtn.style.display = 'none';
+  
+  // زر الإيقاف المؤقت
+  elements.pauseShiftBtn.textContent = state.isPaused ? 'استئناف الشفت' : 'إيقاف مؤقت';
+  elements.pauseShiftBtn.className = state.isPaused ? 'btn btn-orange' : 'btn btn-secondary';
+  elements.shiftStatusText.textContent = state.isPaused ? 'شفت متوقف مؤقتًا' : 'شفت نشط';
 
-  if (currentTrip) {
-    // حالة: رحلة نشطة (يظهر زر إنهاء الرحلة فقط)
-    elements.activeTripState.style.display = 'flex';
-    elements.tripStartLocation.textContent = currentTrip.startLocation || 'جاري التحديد...';
-    
-    updateTripDistance(); // تحديث المسافة
-    
-    // تشغيل عداد الرحلة
-    tripTimerInterval = setInterval(() => {
-      const duration = Math.floor((Date.now() - currentTrip.startTime.toDate()) / 1000);
-      elements.tripTimer.textContent = formatDuration(duration);
-    }, 1000);
-
-  } else if (currentShift) {
-    // حالة: شفت نشط (يظهر زرا بدء الرحلة وإنهاء الشفت)
-    elements.activeShiftState.style.display = 'flex';
-    
-    // تحديث إحصائيات الشفت
-    elements.currentShiftIncome.textContent = `${currentShift.totalIncome.toFixed(2)} ر.س`;
-    elements.currentShiftTrips.textContent = currentShift.totalTrips;
-    elements.currentShiftDistance.textContent = `${currentShift.totalDistance.toFixed(2)} كم`;
-
-    // تشغيل عداد الشفت
-    shiftTimerInterval = setInterval(() => {
-      const duration = Math.floor((Date.now() - currentShift.startTime.toDate()) / 1000);
-      elements.shiftTimer.textContent = formatDuration(duration);
-    }, 1000);
-
+  // تحديث المؤشر الحي
+  elements.shiftLiveIndicator.classList.toggle('paused', state.isPaused);
+  elements.shiftLiveIndicator.classList.toggle('live', !state.isPaused);
+  
+  // بدء المؤقت إذا لم يكن متوقفًا
+  if (!state.isPaused) {
+    startShiftTimer();
   } else {
-    // حالة: لا يوجد شفت (يظهر زر بدء الشفت فقط)
-    elements.noShiftState.style.display = 'flex';
+    clearInterval(state.intervalId);
+    updateShiftTimeDisplay(); // لتحديث الوقت الثابت
   }
 }
 
-/**
- * تحديث معلومات الأهداف وشريط التقدم.
- */
-function updateGoals(todayStats) {
-  const currentIncome = todayStats.income || 0;
-  const currentHours = todayStats.hours / 3600 || 0; // تحويل الثواني إلى ساعات
-
-  elements.incomeGoalCurrent.textContent = `${currentIncome.toFixed(2)} ر.س`;
-  elements.incomeGoalTarget.textContent = `${goals.income.toFixed(2)} ر.س`;
+// تحديث الواجهة لحالة رحلة نشطة
+function updateUIForActiveTrip() {
+  updateUIForActiveShift(); // نبدأ من حالة الشفت النشط
   
-  elements.hoursGoalCurrent.textContent = `${currentHours.toFixed(1)} س`;
-  elements.hoursGoalTarget.textContent = `${goals.hours.toFixed(1)} س`;
+  // إظهار حالة الرحلة
+  elements.activeTripState.style.display = 'block';
+  elements.currentTripDistance.textContent = `${formatNumber(state.currentTrip.data.distance || 0)} كم`;
   
-  // شريط الدخل
-  const incomePercent = goals.income > 0 ? Math.min(100, (currentIncome / goals.income) * 100) : 0;
-  elements.incomeGoalProgress.style.width = `${incomePercent}%`;
-
-  // شريط الساعات
-  const hoursPercent = goals.hours > 0 ? Math.min(100, (currentHours / goals.hours) * 100) : 0;
-  elements.hoursGoalProgress.style.width = `${hoursPercent}%`;
+  // تعديل الأزرار
+  elements.startTripBtn.style.display = 'none';
+  elements.pauseShiftBtn.style.display = 'none'; // لا يمكن إيقاف الشفت أثناء الرحلة
+  elements.endTripBtn.style.display = 'block';
 }
 
-/**
- * تحديث الإحصائيات الكلية.
- */
-function updateTotalStats() {
-  elements.totalIncome.textContent = `${totalStats.income.toFixed(2)} ر.س`;
-  elements.totalDistance.textContent = `${totalStats.distance.toFixed(2)} كم`;
-}
 
-/**
- * تحديث مسافة الرحلة الحالية (لتبسيط المشكلة، تم حذف منطق تحديد الموقع الجغرافي الفعلي)
- */
-function updateTripDistance() {
-  if (currentTrip) {
-    // في بيئة الإنتاج، سيتم استخدام موقع المستخدم لتحديث هذه القيمة
-    // للحفاظ على عمل التطبيق بدون موقع، نستخدم قيمة عشوائية متزايدة
-    const distance = currentTrip.currentDistance || 0;
-    elements.currentTripDistance.textContent = `${distance.toFixed(2)} كم`;
+// -------------------- منطق الشفت/الرحلة --------------------
+
+// مؤقت الشفت
+function startShiftTimer() {
+  if (state.intervalId) {
+    clearInterval(state.intervalId);
   }
-}
-
-// ----------------------------------------------------
-// دوال قاعدة البيانات (Firestore)
-// ----------------------------------------------------
-
-/**
- * جلب الأهداف من قاعدة البيانات.
- */
-async function fetchGoals() {
-  try {
-    const docRef = doc(db, "goals", "dailyGoals");
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      goals = docSnap.data();
-    } else {
-      // إعداد الأهداف الافتراضية
-      goals = { income: 500, hours: 8 };
-    }
-  } catch (error) {
-    console.error("خطأ في جلب الأهداف:", error);
-    // نعتمد الأهداف الافتراضية في حالة الخطأ
-    goals = { income: 500, hours: 8 };
+  
+  // التأكد من أن وقت البدء هو كائن Date
+  if (!(state.shiftStartTime instanceof Date) || isNaN(state.shiftStartTime)) {
+    // محاولة تحويل timestamp إلى Date إذا لم يكن كذلك
+    state.shiftStartTime = new Date(state.shiftStartTime.seconds * 1000);
   }
-}
 
-/**
- * جلب الإحصائيات الكلية.
- */
-async function fetchTotalStats() {
-    try {
-        const statsQuery = query(collection(db, "shifts"), where("isCompleted", "==", true));
-        const querySnapshot = await getDocs(statsQuery);
-
-        let totalIncome = 0;
-        let totalDistance = 0;
-
-        querySnapshot.forEach((doc) => {
-            const shift = doc.data();
-            totalIncome += shift.totalIncome || 0;
-            totalDistance += shift.totalDistance || 0;
-        });
-
-        totalStats = { income: totalIncome, distance: totalDistance };
-        updateTotalStats();
-    } catch (error) {
-        console.error("خطأ في جلب الإحصائيات الكلية:", error);
-        showNotification("❌ فشل في تحميل الإحصائيات الكلية.", "error");
+  state.intervalId = setInterval(() => {
+    if (!state.isPaused) {
+      updateShiftTimeDisplay();
     }
+  }, 1000);
 }
 
-/**
- * جلب حالة الشفت والرحلة الحالية (الاستماع في الوقت الفعلي).
- */
-function setupRealtimeListeners() {
-  // 1. الاستماع لحالة الشفت النشط
-  const shiftsQuery = query(
-    collection(db, "shifts"),
-    where("isCompleted", "==", false),
-    orderBy("startTime", "desc")
-  );
-
-  onSnapshot(shiftsQuery, (snapshot) => {
-    safeShowLoader();
-    if (!snapshot.empty) {
-      currentShift = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-      
-      // 2. الاستماع لحالة الرحلة النشطة داخل هذا الشفت
-      const tripsQuery = query(
-        collection(db, `shifts/${currentShift.id}/trips`),
-        where("isCompleted", "==", false),
-        orderBy("startTime", "desc")
-      );
-      
-      onSnapshot(tripsQuery, (tripSnapshot) => {
-        if (!tripSnapshot.empty) {
-          currentTrip = { id: tripSnapshot.docs[0].id, ...tripSnapshot.docs[0].data() };
-        } else {
-          currentTrip = null;
-        }
-        updateControlCard();
-        safeHideLoader();
-      }, (error) => {
-        console.error("خطأ في الاستماع للرحلات:", error);
-        safeHideLoader();
-      });
-
-    } else {
-      currentShift = null;
-      currentTrip = null;
-      updateControlCard();
-      safeHideLoader();
-    }
-    
-    // جلب إحصائيات اليوم لتحديث الأهداف
-    fetchTodayStats();
-    fetchTotalStats();
-  }, (error) => {
-    console.error("خطأ في الاستماع للشفتات:", error);
-    safeHideLoader();
-    showNotification("❌ فشل في الاتصال بقاعدة البيانات.", "error");
-  });
+// عرض وقت الشفت
+function updateShiftTimeDisplay() {
+  if (!state.shiftStartTime) return;
+  const now = new Date();
+  // حساب فرق التوقيت بالمللي ثانية
+  const timeDifferenceMs = now.getTime() - state.shiftStartTime.getTime();
+  const totalSeconds = Math.floor(timeDifferenceMs / 1000);
+  elements.shiftTime.textContent = formatTime(totalSeconds);
 }
 
-/**
- * جلب إحصائيات اليوم (مجموع الدخل والمدة).
- */
-async function fetchTodayStats() {
-    // تعقيد المنطق لحساب اليوم الحالي في Firebase يتطلب دالة Cloud Function 
-    // للتبسيط ولغرض العرض: سنجمع إحصائيات الشفت النشط ونفترضها هي إحصائيات اليوم.
-    let todayStats = { income: 0, hours: 0 };
-    
-    if (currentShift) {
-        todayStats.income = currentShift.totalIncome;
-        // حساب المدة بالثواني
-        const shiftDurationSeconds = Math.floor((Date.now() - currentShift.startTime.toDate()) / 1000);
-        todayStats.hours = shiftDurationSeconds;
-    }
-    
-    updateGoals(todayStats);
-}
-
-
-// ----------------------------------------------------
-// دوال الأحداث (Event Handlers)
-// ----------------------------------------------------
-
-// بدء شفت جديد
-async function handleStartShift() {
-  safeShowLoader();
+// بدء الشفت
+async function startShift() {
+  safeShowLoader("جاري بدء شفت جديد...");
   try {
-    // إنشاء مستند شفت جديد
     const newShift = {
       startTime: new Date(),
-      isCompleted: false,
+      endTime: null,
+      isActive: true,
+      isPaused: false,
       totalIncome: 0,
-      totalTrips: 0,
       totalDistance: 0,
-      trips: []
-    };
-    await addDoc(collection(db, "shifts"), newShift);
-    showNotification("✅ تم بدء شفت جديد بنجاح!", "success");
-  } catch (error) {
-    console.error("خطأ في بدء الشفت:", error);
-    showNotification("❌ فشل في بدء الشفت.", "error");
-  }
-  safeHideLoader();
-}
-
-// إنهاء شفت
-async function handleEndShift(confirmed = false) {
-  if (!currentShift) return;
-
-  if (!confirmed) {
-    elements.shiftEndModal.style.display = 'flex';
-    return;
-  }
-  
-  elements.shiftEndModal.style.display = 'none';
-  safeShowLoader();
-  try {
-    // تأكيد إنهاء الشفت وإغلاق جميع الرحلات غير المكتملة
-    const shiftRef = doc(db, "shifts", currentShift.id);
-    await updateDoc(shiftRef, {
-      isCompleted: true,
-      endTime: new Date(),
-    });
-    
-    // إيقاف العدادات
-    if (shiftTimerInterval) clearInterval(shiftTimerInterval);
-    if (tripTimerInterval) clearInterval(tripTimerInterval);
-
-    // إعادة ضبط الحالة المحلية
-    currentShift = null;
-    currentTrip = null;
-
-    showNotification("✅ تم إنهاء الشفت بنجاح! نهارك سعيد.", "success");
-  } catch (error) {
-    console.error("خطأ في إنهاء الشفت:", error);
-    showNotification("❌ فشل في إنهاء الشفت.", "error");
-  }
-  safeHideLoader();
-}
-
-// بدء رحلة جديدة
-async function handleStartTrip() {
-  if (!currentShift) return showNotification("❌ يجب بدء شفت أولاً.", "error");
-  safeShowLoader();
-  try {
-    // إنشاء رحلة جديدة
-    const newTrip = {
-      startTime: new Date(),
-      startLocation: 'الرياض', // قيمة افتراضية
-      endLocation: null,
-      distance: 0,
-      fare: 0,
-      isCompleted: false,
+      tripCount: 0,
+      currentTripId: null,
     };
     
-    const tripsCollection = collection(db, `shifts/${currentShift.id}/trips`);
-    await addDoc(tripsCollection, newTrip);
+    // إضافة الشفت إلى Firebase
+    const docRef = await addDoc(state.shiftsRef, newShift);
     
-    showNotification("✅ تم بدء رحلة جديدة! ابدأ القيادة.", "success");
+    // تحديث الحالة المحلية
+    state.currentShift = newShift;
+    state.currentShift.id = docRef.id;
+    state.shiftStartTime = newShift.startTime;
+    state.isPaused = false;
+    
+    // تحديث الواجهة
+    updateUIForActiveShift();
+    showNotification("✅ تم بدء الشفت بنجاح.", 'success');
+
   } catch (error) {
-    console.error("خطأ في بدء الرحلة:", error);
-    showNotification("❌ فشل في بدء الرحلة.", "error");
+    console.error("❌ خطأ في بدء الشفت:", error);
+    // /////////////////////////////////////////
+    // إضافة إشعار واضح عند الفشل
+    showNotification(`❌ فشل بدء الشفت: ${error.message || "خطأ غير معروف"}`, 'error');
+    // /////////////////////////////////////////
   }
   safeHideLoader();
 }
 
-// إنهاء الرحلة
-function handleEndTrip() {
-  if (!currentTrip || !currentShift) return;
+// -------------------- معالجات الأحداث --------------------
+
+function initializeApp() {
+  checkShiftStatus();
+
+  // ربط الأحداث بالأزرار
+  elements.startShiftBtn.addEventListener('click', startShift);
+  // (هنا يمكن إضافة باقي معالجات الأزرار: endShift, startTrip, endTrip, pauseShift)
   
-  // إظهار نافذة إدخال الأجرة
-  elements.fareInput.value = ''; // مسح القيمة السابقة
-  elements.fareModal.style.display = 'flex';
-  elements.fareInput.focus();
+  // لضمان التحديث في الخلفية، استخدام onSnapshot أفضل ولكن نعتمد على checkShiftStatus للتحديث الأساسي.
 }
 
-// تأكيد إدخال الأجرة (منبثق)
-async function handleFareConfirm() {
-  const fare = parseFloat(elements.fareInput.value);
-  
-  if (isNaN(fare) || fare <= 0) {
-    return showNotification("❌ الرجاء إدخال أجرة صحيحة وموجبة.", "error");
-  }
-
-  elements.fareModal.style.display = 'none';
-  safeShowLoader();
-
-  try {
-    // 1. تحديث الرحلة
-    const tripRef = doc(db, `shifts/${currentShift.id}/trips`, currentTrip.id);
-    const distance = currentTrip.currentDistance || 5.0; // مسافة افتراضية
-    
-    await updateDoc(tripRef, {
-      endTime: new Date(),
-      fare: fare,
-      distance: distance,
-      isCompleted: true,
-      endLocation: 'المكان النهائي' // قيمة افتراضية
-    });
-
-    // 2. تحديث الشفت الأم (Shift Parent)
-    const shiftRef = doc(db, "shifts", currentShift.id);
-    const newIncome = currentShift.totalIncome + fare;
-    const newTrips = currentShift.totalTrips + 1;
-    const newDistance = currentShift.totalDistance + distance;
-    
-    await updateDoc(shiftRef, {
-      totalIncome: newIncome,
-      totalTrips: newTrips,
-      totalDistance: newDistance,
-    });
-    
-    // إيقاف عداد الرحلة
-    if (tripTimerInterval) clearInterval(tripTimerInterval);
-    currentTrip = null;
-    
-    showNotification(`✅ تم إنهاء الرحلة وإضافة ${fare} ر.س.`, "success");
-    
-  } catch (error) {
-    console.error("خطأ في إنهاء الرحلة:", error);
-    showNotification("❌ فشل في إنهاء الرحلة.", "error");
-  }
-  safeHideLoader();
-}
-
-// ----------------------------------------------------
-// التهيئة والروابط (Initialization)
-// ----------------------------------------------------
-
-async function initializeApp() {
-  safeShowLoader();
-  await fetchGoals();
-  await fetchTotalStats();
-  setupRealtimeListeners(); // تبدأ الاستماع وتحديث updateControlCard
-  safeHideLoader();
-}
-
-// ربط الأحداث بالأزرار
-elements.startShiftBtn.addEventListener('click', handleStartShift);
-elements.endShiftBtn.addEventListener('click', () => handleEndShift(false)); // إظهار المنبثق
-elements.shiftEndConfirmBtn.addEventListener('click', () => handleEndShift(true)); // تأكيد الإنهاء
-elements.shiftEndCancelBtn.addEventListener('click', () => {
-    elements.shiftEndModal.style.display = 'none';
-});
-
-elements.startTripBtn.addEventListener('click', handleStartTrip);
-elements.endTripBtn.addEventListener('click', handleEndTrip);
-
-elements.fareConfirmBtn.addEventListener('click', handleFareConfirm);
-elements.fareCancelBtn.addEventListener('click', () => {
-  elements.fareModal.style.display = 'none';
-});
-
-// لمنع الإرسال التلقائي للنموذج عند الضغط على Enter
-elements.fareInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        handleFareConfirm();
-    }
-});
-
-
+// تشغيل التهيئة
 document.addEventListener('DOMContentLoaded', initializeApp);
