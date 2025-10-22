@@ -1,19 +1,12 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+// ** analytics.js - المصحح **
+// تم استيراد التهيئة من الملف المركزي لحل مشكلة initializeApp
 
-const firebaseConfig = {
-  apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
-  authDomain: "trip-tracker-rajeh.firebaseapp.com",
-  projectId: "trip-tracker-rajeh",
-  storageBucket: "trip-tracker-rajeh.appspot.com",
-  messagingSenderId: "1025723412931",
-  appId: "1:1025723412931:web:53a9fa6e1a7a5f43a3dbec",
-  measurementId: "G-J1RBF8H0CC"
-};
+import { 
+  db, collection, getDocs, query, where, orderBy 
+} from "./firebase-config.js"; 
+// نعتمد على chart.js من ملف analytics.html
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
+// العناصر
 const elements = {
   loadingOverlay: document.getElementById('loading-overlay'),
   chartCanvasEl: document.getElementById('income-chart'),
@@ -25,349 +18,26 @@ const elements = {
 
 let completedShifts = [];
 let incomeChart = null;
+const shiftsRef = collection(db, "shifts");
 
-document.addEventListener('DOMContentLoaded', initializeAnalytics);
+// -------------------- الوظائف المساعدة --------------------
 
-function initializeAnalytics() {
-  safeShowLoader();
-  addEventListeners();
-  loadCompletedShifts();
-}
-
-function addEventListeners() {
-  elements?.exportCsvBtn?.addEventListener('click', exportToCSV);
-  elements?.exportPdfBtn?.addEventListener('click', exportToPDF);
-  
-  // تحديث محتوى الأزرار إذا كانت موجودة
-  if (elements.exportCsvBtn) {
-    elements.exportCsvBtn.innerHTML = '<img src="assets/icons/csv.png" alt="CSV" width="20" height="20"> تصدير CSV';
-  }
-  if (elements.exportPdfBtn) {
-    elements.exportPdfBtn.innerHTML = '<img src="assets/icons/download.png" alt="PDF" width="20" height="20"> تصدير PDF';
-  }
-}
-
-async function loadCompletedShifts() {
+function safeShowLoader(message = 'جاري تحليل البيانات...') {
   try {
-    const shiftsRef = collection(db, 'shifts');
-    const q = query(shiftsRef, where('status', '==', 'completed'), orderBy('startTime', 'desc'));
-    const snapshot = await getDocs(q);
-    completedShifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    
-    if (completedShifts.length === 0) {
-      showNoData("لا توجد شفتات مكتملة للعرض بعد.");
-      return;
+    if (elements.loadingOverlay) {
+        elements.loadingOverlay.querySelector('p').textContent = message;
+        elements.loadingOverlay.style.display = 'flex';
+        elements.loadingOverlay.classList.add('show');
     }
-    
-    populateShiftsTable(completedShifts);
-    processDataForChart(completedShifts);
-    
-  } catch (error) {
-    console.error("❌ خطأ في جلب الشفتات المكتملة:", error);
-    showNoData("فشل تحميل البيانات. تحقق من الاتصال بالإنترنت.");
-  } finally {
-    safeHideLoader();
-  }
-}
-
-function populateShiftsTable(shifts) {
-  if (!elements.tableBody) return;
-  elements.tableBody.innerHTML = '';
-  
-  shifts.forEach(shift => {
-    const startTime = toDateSafe(shift.startTime);
-    const durationSec = shift.activeDurationSeconds || 0;
-    const income = shift.totalIncome || 0;
-    const tripTimeSec = shift.totalTripTimeSeconds || 0;
-    const avgHourly = (tripTimeSec > 0) ? (income / (tripTimeSec / 3600)) : 0;
-    
-    const row = `
-      <tr>
-        <td>${startTime.toLocaleDateString('ar-SA')}</td>
-        <td>${startTime.toLocaleTimeString('ar-SA')}</td>
-        <td>${formatDuration(durationSec, 'short')}</td>
-        <td>${income.toFixed(2)} ر.س</td>
-        <td>${shift.tripCount || 0}</td>
-        <td>${(shift.totalDistance || 0).toFixed(2)} كم</td>
-        <td>${avgHourly.toFixed(2)} ر.س</td>
-      </tr>`;
-    elements.tableBody.insertAdjacentHTML('beforeend', row);
-  });
-}
-
-function processDataForChart(shifts) {
-  if (!elements.chartCanvasEl) return;
-  if (typeof Chart === 'undefined') {
-    console.warn("⚠️ Chart.js غير متوفر — تخطي الرسم.");
-    return;
-  }
-  
-  const ctx = elements.chartCanvasEl.getContext('2d');
-  const data = {};
-  const labels = [];
-  const incomeData = [];
-  
-  // تجميع البيانات حسب التاريخ
-  shifts.forEach(shift => {
-    const d = toDateSafe(shift.startTime);
-    const dateStr = d.toISOString().split('T')[0];
-    const income = shift.totalIncome || 0;
-    data[dateStr] = (data[dateStr] || 0) + income;
-  });
-  
-  // إنشاء تسميات آخر 30 يوم
-  const today = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-    const labelStr = date.toLocaleDateString('ar-SA', { day: '2-digit', month: '2-digit' });
-    labels.push(labelStr);
-    incomeData.push(data[dateStr] || 0);
-  }
-  
-  // تدمير الرسم البياني القديم إن وجد
-  if (incomeChart) incomeChart.destroy();
-  
-  // إنشاء الرسم البياني الجديد
-  incomeChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'الدخل اليومي (ر.س)',
-        data: incomeData,
-        backgroundColor: 'rgba(107, 77, 230, 0.7)',
-        borderColor: 'rgba(107, 77, 230, 1)',
-        borderWidth: 2,
-        borderRadius: 8,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: true,
-          position: 'top',
-          labels: {
-            color: 'var(--text)',
-            font: {
-              family: 'Cairo',
-              size: 14
-            }
-          }
-        },
-        tooltip: {
-          backgroundColor: 'var(--surface)',
-          titleColor: 'var(--text)',
-          bodyColor: 'var(--text)',
-          borderColor: 'var(--primary-color)',
-          borderWidth: 1,
-          callbacks: {
-            label: function(context) {
-              return `الدخل: ${context.parsed.y.toFixed(2)} ر.س`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: {
-            color: 'var(--border)'
-          },
-          ticks: {
-            color: 'var(--text-muted)',
-            font: {
-              family: 'Cairo'
-            }
-          }
-        },
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: 'var(--border)'
-          },
-          ticks: {
-            color: 'var(--text-muted)',
-            font: {
-              family: 'Cairo'
-            },
-            callback: function(value) {
-              return value + ' ر.س';
-            }
-          }
-        }
-      },
-      animation: {
-        duration: 1000,
-        easing: 'easeInOutQuart'
-      }
-    }
-  });
-}
-
-function exportToCSV() {
-  if (completedShifts.length === 0) {
-    alert("❌ لا توجد بيانات لتصديرها.");
-    return;
-  }
-  
-  let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-  csvContent += "تاريخ البدء,وقت البدء,المدة الفعالة,الدخل (ر.س),عدد الرحلات,المسافة (كم),متوسط الأجر/ساعة\r\n";
-  
-  completedShifts.forEach(shift => {
-    const startTime = toDateSafe(shift.startTime);
-    const durationSec = shift.activeDurationSeconds || 0;
-    const income = shift.totalIncome || 0;
-    const tripTimeSec = shift.totalTripTimeSeconds || 0;
-    const avgHourly = (tripTimeSec > 0) ? (income / (tripTimeSec / 3600)) : 0;
-    
-    const row = [
-      `"${startTime.toLocaleDateString('ar-SA')}"`,
-      `"${startTime.toLocaleTimeString('ar-SA')}"`,
-      `"${formatDuration(durationSec, 'short')}"`,
-      income.toFixed(2),
-      shift.tripCount || 0,
-      (shift.totalDistance || 0).toFixed(2),
-      avgHourly.toFixed(2)
-    ].join(",");
-    
-    csvContent += row + "\r\n";
-  });
-  
-  const link = document.createElement("a");
-  link.href = encodeURI(csvContent);
-  link.download = `trip_tracker_shifts_${new Date().toISOString().split('T')[0]}.csv`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  showNotification("تم تصدير البيانات بنجاح إلى CSV!", "success");
-}
-
-function exportToPDF() {
-  if (completedShifts.length === 0) {
-    alert("❌ لا توجد بيانات لتصديرها.");
-    return;
-  }
-  
-  const { jsPDF } = window.jspdf || {};
-  if (!jsPDF) {
-    alert("❌ مكتبة jsPDF غير متوفرة في هذه الصفحة.");
-    return;
-  }
-  
-  try {
-    const doc = new jsPDF();
-    
-    // العنوان
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.setTextColor(107, 77, 230);
-    doc.text("تقرير الشفتات - Trip Tracker", 105, 20, { align: 'center' });
-    
-    // التاريخ
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`تاريخ التصدير: ${new Date().toLocaleDateString('ar-SA')}`, 105, 30, { align: 'center' });
-    
-    // رأس الجدول
-    const head = [["Date", "Start Time", "Duration", "Income (SAR)", "Trips", "Distance (KM)", "Avg/Hour (SAR)"]];
-    
-    // بيانات الجدول
-    const body = completedShifts.map(shift => {
-      const startTime = toDateSafe(shift.startTime);
-      const durationSec = shift.activeDurationSeconds || 0;
-      const income = shift.totalIncome || 0;
-      const tripTimeSec = shift.totalTripTimeSeconds || 0;
-      const avgHourly = (tripTimeSec > 0) ? (income / (tripTimeSec / 3600)) : 0;
-      
-      return [
-        startTime.toLocaleDateString('en-US'),
-        startTime.toLocaleTimeString('en-US'),
-        formatDuration(durationSec, 'short'),
-        income.toFixed(2),
-        shift.tripCount || 0,
-        (shift.totalDistance || 0).toFixed(2),
-        avgHourly.toFixed(2)
-      ];
-    });
-    
-    // إنشاء الجدول
-    if (doc.autoTable) {
-      doc.autoTable({
-        head: head,
-        body: body,
-        startY: 40,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [107, 77, 230],
-          textColor: 255,
-          fontStyle: 'bold'
-        },
-        styles: {
-          font: 'helvetica',
-          fontSize: 10,
-          cellPadding: 3,
-        },
-        alternateRowStyles: {
-          fillColor: [240, 240, 240]
-        }
-      });
-    }
-    
-    // الحفظ
-    doc.save(`trip_tracker_report_${new Date().toISOString().split('T')[0]}.pdf`);
-    
-    showNotification("تم تصدير البيانات بنجاح إلى PDF!", "success");
-    
-  } catch (error) {
-    console.error("❌ خطأ في تصدير PDF:", error);
-    alert("❌ فشل تصدير PDF. يرجى المحاولة مرة أخرى.");
-  }
-}
-
-// مساعدات
-function formatDuration(totalSeconds = 0, format = 'full') {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  if (format === 'short') return `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}`;
-  const seconds = Math.floor(totalSeconds % 60);
-  return [hours, minutes, seconds].map(v => String(v).padStart(2,'0')).join(':');
-}
-
-function toDateSafe(val) {
-  try {
-    if (!val) return new Date(0);
-    if (typeof val.toDate === 'function') return val.toDate();
-    return new Date(val);
-  } catch {
-    return new Date(0);
-  }
-}
-
-function showNoData(msg) {
-  const el = elements.noShiftsMessage;
-  if (el) {
-    el.textContent = msg;
-    el.style.display = 'block';
-  }
-}
-
-function safeShowLoader() {
-  try {
-    elements.loadingOverlay.style.display = 'flex';
-    elements.loadingOverlay.classList.add('show');
   } catch {}
 }
 
 function safeHideLoader() {
   try {
-    elements.loadingOverlay.style.display = 'none';
-    elements.loadingOverlay.classList.remove('show');
+    if (elements.loadingOverlay) {
+      elements.loadingOverlay.style.display = 'none';
+      elements.loadingOverlay.classList.remove('show');
+    }
   } catch {}
 }
 
@@ -381,12 +51,13 @@ function showNotification(message, type = 'info') {
     </div>
   `;
   
+  // إضافة الأنماط (تأكد من وجودها في style.css)
   notification.style.cssText = `
     position: fixed;
     top: 100px;
     left: 20px;
     right: 20px;
-    background: ${type === 'success' ? 'var(--green)' : 'var(--red)'};
+    background: ${type === 'success' ? 'var(--green, #22c55e)' : 'var(--red, #ef4444)'};
     color: white;
     padding: 16px 20px;
     border-radius: 12px;
@@ -405,15 +76,286 @@ function showNotification(message, type = 'info') {
   setTimeout(() => {
     notification.style.transform = 'translateY(0)';
     notification.style.opacity = '1';
-  }, 100);
-  
+  }, 10);
+
   setTimeout(() => {
     notification.style.transform = 'translateY(-20px)';
     notification.style.opacity = '0';
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 300);
-  }, 4000);
+    notification.addEventListener('transitionend', () => notification.remove());
+  }, 5000);
 }
+
+function formatDuration(seconds) {
+    if (seconds === 0) return '0 س';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    let parts = [];
+    if (hours > 0) parts.push(`${hours} س`);
+    if (minutes > 0) parts.push(`${minutes} د`);
+    
+    return parts.join(' و ');
+}
+
+function formatDateTime(date) {
+    if (!date) return 'N/A';
+    const d = date.toDate();
+    const datePart = d.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+    const timePart = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    return { date: datePart, time: timePart };
+}
+
+// -------------------- إدارة البيانات والرسوم --------------------
+
+async function fetchAndRenderShifts() {
+    safeShowLoader();
+    try {
+        const q = query(shiftsRef, where("isActive", "==", false), orderBy("endTime", "desc"));
+        const snapshot = await getDocs(q);
+        
+        completedShifts = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        if (completedShifts.length === 0) {
+            elements.noShiftsMessage.style.display = 'block';
+            if (elements.tableBody) elements.tableBody.innerHTML = '';
+            safeHideLoader();
+            return;
+        }
+
+        elements.noShiftsMessage.style.display = 'none';
+        
+        // 1. إظهار البيانات في الجدول
+        renderShiftsTable(completedShifts);
+        
+        // 2. تحديث الرسم البياني
+        updateChart(completedShifts);
+
+    } catch (error) {
+        console.error("❌ خطأ في جلب بيانات التحليل:", error);
+        showNotification("❌ فشل تحميل بيانات التحليل.", 'error');
+    }
+    safeHideLoader();
+}
+
+function renderShiftsTable(shifts) {
+    if (!elements.tableBody) return;
+    elements.tableBody.innerHTML = '';
+    
+    shifts.forEach(shift => {
+        const start = shift.startTime.toDate();
+        const end = shift.endTime ? shift.endTime.toDate() : new Date(); // افتراض نهاية حالية للشفت النشط إذا لم يكن هناك endTime
+        const durationSeconds = Math.floor((end - start) / 1000);
+        
+        // حساب مدة العمل الفعالة (إهمال وقت التوقف المؤقت إذا كان هناك منطق لذلك)
+        // حاليا نستخدم المدة الكلية
+        const effectiveDuration = durationSeconds; 
+        
+        const incomePerHour = effectiveDuration > 0 ? (shift.totalIncome / (effectiveDuration / 3600)).toFixed(2) : '0.00';
+        const formattedStart = formatDateTime(shift.startTime);
+
+        const row = elements.tableBody.insertRow();
+        row.innerHTML = `
+            <td>${formattedStart.date}</td>
+            <td>${formattedStart.time}</td>
+            <td>${formatDuration(effectiveDuration)}</td>
+            <td>${(shift.totalIncome || 0).toFixed(2)}</td>
+            <td>${shift.tripCount || 0}</td>
+            <td>${(shift.totalDistance || 0).toFixed(2)}</td>
+            <td style="font-weight: bold;">${incomePerHour} ر.س</td>
+        `;
+    });
+}
+
+function updateChart(shifts) {
+    if (!elements.chartCanvasEl) return;
+
+    // تجهيز البيانات للرسم البياني (الدخل لكل شفت)
+    const chartLabels = shifts.map(shift => formatDateTime(shift.startTime).date);
+    const chartData = shifts.map(shift => shift.totalIncome || 0);
+
+    if (incomeChart) {
+        incomeChart.destroy(); // حذف الرسم البياني القديم قبل إنشاء الجديد
+    }
+
+    incomeChart = new Chart(elements.chartCanvasEl, {
+        type: 'bar', // يمكن تغييره إلى 'line' أو 'doughnut'
+        data: {
+            labels: chartLabels.reverse(), // اعكس ليكون الأحدث على اليمين
+            datasets: [{
+                label: 'الدخل الكلي للشفت (ر.س)',
+                data: chartData.reverse(),
+                backgroundColor: 'rgba(107, 77, 230, 0.7)', // var(--primary-color)
+                borderColor: 'rgba(107, 77, 230, 1)',
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            responsive: true,
+            aspectRatio: 1.5, // نسبة العرض إلى الارتفاع
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'الدخل (ر.س)'
+                    },
+                    ticks: {
+                        // لاضافة علامة الريال
+                        callback: function(value, index, values) {
+                            return value + ' ر.س';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { family: 'Cairo' }
+                    }
+                },
+                tooltip: {
+                    rtl: true,
+                    titleFont: { family: 'Cairo' },
+                    bodyFont: { family: 'Cairo' },
+                }
+            }
+        }
+    });
+}
+
+// -------------------- تصدير البيانات --------------------
+
+function exportToCSV() {
+    if (completedShifts.length === 0) {
+        showNotification("⚠️ لا توجد بيانات للتصدير.", 'info');
+        return;
+    }
+    
+    // تعريف العناوين
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF for Arabic support
+    const headers = [
+        "ID", "تاريخ البدء", "وقت البدء", "تاريخ الانتهاء", "وقت الانتهاء", 
+        "مدة الشفت (ثانية)", "الدخل الكلي (ر.س)", "عدد الرحلات", "المسافة (كم)", 
+        "الدخل/ساعة (ر.س)"
+    ];
+    csvContent += headers.join(",") + "\r\n";
+
+    // إضافة البيانات
+    completedShifts.forEach(shift => {
+        const start = shift.startTime.toDate();
+        const end = shift.endTime ? shift.endTime.toDate() : new Date();
+        const durationSeconds = Math.floor((end - start) / 1000);
+        const incomePerHour = durationSeconds > 0 ? (shift.totalIncome / (durationSeconds / 3600)) : 0;
+        
+        const row = [
+            shift.id,
+            start.toLocaleDateString('ar-EG'),
+            start.toLocaleTimeString('ar-EG'),
+            end.toLocaleDateString('ar-EG'),
+            end.toLocaleTimeString('ar-EG'),
+            durationSeconds,
+            shift.totalIncome || 0,
+            shift.tripCount || 0,
+            shift.totalDistance || 0,
+            incomePerHour.toFixed(2)
+        ];
+        csvContent += row.join(",") + "\r\n";
+    });
+
+    // إنشاء رابط التنزيل
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "TripTracker_Shifts_Analytics.csv");
+    document.body.appendChild(link); 
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification("✅ تم تصدير البيانات إلى ملف CSV.", 'success');
+}
+
+function exportToPDF() {
+    // تتطلب مكتبة jspdf و jspdf-autotable
+    if (typeof jspdf === 'undefined' || typeof jsPDF.autoTable === 'undefined') {
+        showNotification("⚠️ مكتبات التصدير غير محملة بشكل صحيح. راجع ملف analytics.html.", 'error');
+        return;
+    }
+    if (completedShifts.length === 0) {
+        showNotification("⚠️ لا توجد بيانات للتصدير.", 'info');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'pt', 'a4'); // 'l' for landscape, 'pt' for points, 'a4' size
+        doc.setFont('Amiri', 'normal'); // يفترض وجود خط عربي مضاف لـ jspdf
+
+        const tableColumn = ["تاريخ البدء", "وقت البدء", "المدة الفعالة", "الدخل (ر.س)", "عدد الرحلات", "المسافة (كم)", "متوسط/ساعة (ر.س)"];
+        const tableRows = [];
+
+        completedShifts.forEach(shift => {
+            const start = shift.startTime.toDate();
+            const end = shift.endTime ? shift.endTime.toDate() : new Date();
+            const durationSeconds = Math.floor((end - start) / 1000);
+            const effectiveDuration = durationSeconds; 
+            const incomePerHour = effectiveDuration > 0 ? (shift.totalIncome / (effectiveDuration / 3600)).toFixed(2) : '0.00';
+            const formattedStart = formatDateTime(shift.startTime);
+
+            tableRows.push([
+                formattedStart.date,
+                formattedStart.time,
+                formatDuration(effectiveDuration),
+                (shift.totalIncome || 0).toFixed(2),
+                shift.tripCount || 0,
+                (shift.totalDistance || 0).toFixed(2),
+                incomePerHour
+            ]);
+        });
+        
+        // عنوان PDF
+        doc.text("تقرير تحليل شفتات Trip Tracker", 400, 40, null, null, 'center');
+
+        // إنشاء الجدول
+        doc.autoTable(tableColumn, tableRows, {
+            startY: 60,
+            theme: 'grid',
+            headStyles: { 
+                fillColor: [107, 77, 230], // Primary color
+                font: 'Amiri', // يجب ان يكون خط Amiri مضافا
+                halign: 'center'
+            },
+            bodyStyles: { font: 'Amiri', halign: 'center' },
+            styles: {
+                // ضبط الاتجاه لليمين لـ RTL
+                direction: 'rtl',
+                halign: 'right',
+                cellPadding: 6,
+            }
+        });
+        
+        doc.save('TripTracker_Shifts_Report.pdf');
+        showNotification("✅ تم تصدير البيانات إلى ملف PDF.", 'success');
+        
+    } catch (error) {
+        console.error("❌ خطأ في تصدير PDF:", error);
+        showNotification(`❌ فشل تصدير PDF. تأكد من وجود مكتبات jspdf: ${error.message}`, 'error');
+    }
+}
+
+
+// -------------------- التهيئة --------------------
+
+function initializeAnalytics() {
+    // ربط الأحداث بأزرار التصدير
+    if (elements.exportCsvBtn) elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    if (elements.exportPdfBtn) elements.exportPdfBtn.addEventListener('click', exportToPDF);
+    
+    fetchAndRenderShifts();
+}
+
+document.addEventListener('DOMContentLoaded', initializeAnalytics);
