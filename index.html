@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Trip Tracker - تتبع الرحلات</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b4de6">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="main-header">
+    <div class="header-title">
+      <h1>Trip Tracker</h1>
+      <span>تطبيق تتبع الرحلات للسائقين</span>
+    </div>
+    <div class="header-logo">
+      <img src="assets/icons/icon-192.png" alt="شعار التطبيق">
+    </div>
+  </header>
+
+  <main class="main-content">
+    
+    <section class="control-section">
+      <div class="stats-card">
+        <h2 class="card-title">
+          <img src="assets/icons/play.png" alt="تحكم">
+          التحكم بالشفت والرحلة
+        </h2>
+        
+        <div id="noShiftState" class="shift-state" style="display:block;">
+          <button id="startShiftBtn" class="btn btn-primary btn-full-width">
+            <img src="assets/icons/start.png" alt="بدء">
+            بدء شفت جديد
+          </button>
+        </div>
+        
+        <div id="activeShiftState" class="shift-state" style="display:none;">
+          
+          <div class="summary-box">
+            <p class="shift-status-text" id="shift-status">شفت نشط</p>
+            <p class="shift-duration-value" id="shiftDuration">00:00:00</p>
+          </div>
+
+          <div class="shift-actions">
+            <button id="endShiftBtn" class="btn btn-danger btn-half">إنهاء الشفت</button>
+            <button id="pauseShiftBtn" class="btn btn-secondary btn-half">إيقاف مؤقت</button>
+          </div>
+
+          <div class="trip-actions">
+            <div id="noTripState" class="trip-state" style="display:block;">
+              <button id="startTripBtn" class="btn btn-success btn-full-width">
+                <img src="assets/icons/car.png" alt="رحلة">
+                بدء رحلة جديدة
+              </button>
+            </div>
+            
+            <div id="activeTripState" class="trip-state" style="display:none;">
+              <button id="endTripBtn" class="btn btn-warning btn-full-width">
+                <img src="assets/icons/end-trip.png" alt="إنهاء">
+                إنهاء الرحلة
+              </button>
+            </div>
+          </div>
+          
+          <div class="shift-stats-grid">
+            <div class="stat-item small">
+              <div class="stat-info">
+                <div class="stat-value" id="shiftIncome">0 ر.س</div>
+                <div class="stat-label">دخل الشفت</div>
+              </div>
+            </div>
+            <div class="stat-item small">
+              <div class="stat-info">
+                <div class="stat-value" id="shiftTrips">0</div>
+                <div class="stat-label">عدد الرحلات</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="global-stats-section">
+      <div class="stats-card">
+        <h2 class="card-title">
+          <img src="assets/icons/stats.png" alt="إحصائيات">
+          الإحصائيات الكلية
+        </h2>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-icon">
+              <img src="assets/icons/cash.png" alt="دخل">
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalIncome">0 ر.س</div>
+              <div class="stat-label">الدخل الكلي</div>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon">
+              <img src="assets/icons/distance.png" alt="مسافة">
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="totalDistance">0 كم</div>
+              <div class="stat-label">المسافة الكلية</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="loading-overlay" class="loading-overlay" style="display:none;">
+      <div class="loading-spinner"></div>
+      <p>جاري التحميل…</p>
+    </div>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item active">
+      <img src="assets/icons/home.png" alt="الرئيسية">
+      <span>الرئيسية</span>
+    </a>
+    <a href="reports.html" class="nav-item">
+      <img src="assets/icons/reports.png" alt="التقارير">
+      <span>التقارير</span>
+    </a>
+    <a href="analytics.html" class="nav-item">
+      <img src="assets/icons/analytics.png" alt="التحليل">
+      <span>تحليل</span>
+    </a>
+    <a href="settings.html" class="nav-item">
+      <img src="assets/icons/settings.png" alt="الإعدادات">
+      <span>الإعدادات</span>
+    </a>
+  </nav>
+
+  <script type="module" src="./utils.js"></script>
+  <script type="module" src="./firebase-config.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
