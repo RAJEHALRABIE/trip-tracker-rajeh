@@ -1,4 +1,4 @@
-const CACHE_NAME = 'trip-tracker-v15';
+const CACHE_NAME = 'trip-tracker-v16'; // تم تغيير الإصدار هنا
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,7 +10,6 @@ const urlsToCache = [
   '/reports.js',
   '/analytics.js',
   '/settings.js',
-  '/firebase-config.js', // ⬅️ **الإضافة الجديدة الهامة**
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/chart.js',
@@ -18,19 +17,20 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
 ];
 
-// جميع الأيقونات الـ 25 (للتأكد من كاش جميع الأصول)
+// جميع الأيقونات الـ 25 (لضمان حفظها في الكاش)
 const allIcons = [
   'home.png', 'reports.png', 'analytics.png', 'settings.png',
   'play.png', 'stop.png', 'car.png', 'flag.png', 'time.png',
   'cash.png', 'distance.png', 'live.png', 'download.png',
   'edit.png', 'upload.png', 'delete.png', 'search.png',
-  'details.png', 'stats-icon.png', 'global-stats.png', 
-  'target.png', 'save.png', 'pdf.png', 'csv.png',
-  'dollar.png', 'clock.png', 'calendar.png', 'finish-flag.png',
-  'map-pin.png', 'icon-192.png', 'icon-512.png',
+  'details.png', 'stats-icon.png', 'global-stats.png',
+  'calendar.png', 'clock.png', 'csv.png', 'pdf.png',
+  'icon-192.png', 'icon-512.png', 'finish-flag.png',
+  'dollar.png', 'target.png', 'save.png', 'map-pin.png', // تم إضافة أيقونات إضافية هنا
 ];
-const iconUrls = allIcons.map(icon => `assets/icons/${icon}`);
-urlsToCache.push(...iconUrls);
+
+// إضافة مسارات الأيقونات إلى الكاش
+urlsToCache.push(...allIcons.map(icon => `assets/icons/${icon}`));
 
 // التثبيت
 self.addEventListener('install', (event) => {
@@ -38,18 +38,13 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Service Worker: تخزين الأصول في الكاش');
-        // هنا يمكن أن يحدث خطأ إذا كان أي من الـ URLs غير متاح (مثل CDN)
-        // لذا نستخدم catch لتخطي الأخطاء والاستمرار في التخزين
-        return cache.addAll(urlsToCache).catch((err) => {
-          console.warn('Service Worker: فشل تخزين بعض الأصول في الكاش (وهذا متوقع لـ CDNs)', err);
-        });
+        console.log('Service Worker: تخزين الملفات في الكاش');
+        return cache.addAll(urlsToCache);
       })
-      .then(() => self.skipWaiting())
   );
 });
 
-// التفعيل
+// التنشيط
 self.addEventListener('activate', (event) => {
   console.log('Service Worker: التنشيط');
   event.waitUntil(
@@ -94,9 +89,6 @@ self.addEventListener('fetch', (event) => {
             });
 
           return fetchResponse;
-        }).catch(() => {
-          // يمكن هنا إضافة صفحة خطأ مخصصة لوضع عدم الاتصال إذا لزم الأمر
-          console.log('Service Worker: فشل جلب الشبكة والاحتياطي غير متوفر');
         });
       })
   );
