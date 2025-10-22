@@ -1,132 +1,72 @@
-// ** settings.js - المصحح **
-// تم استيراد التهيئة من الملف المركزي لحل مشكلة initializeApp
+// settings.js
 
 import { 
-  db, collection, getDocs, deleteDoc, doc, writeBatch, setDoc, getDoc 
+  db, collection, getDocs, deleteDoc, doc, writeBatch, setDoc, getDoc
 } from "./firebase-config.js"; 
+import { safeShowLoader, safeHideLoader, showNotification } from "./utils.js"; 
 
 // العناصر
 const elements = {
-  loadingOverlay: document.getElementById('loading-overlay'),
-  importBtn: document.getElementById('import-btn'),
-  importFileInput: document.getElementById('import-file-input'),
-  deleteAllBtn: document.getElementById('delete-all-btn'),
-  incomeGoalInput: document.getElementById('income-goal'),
-  hoursGoalInput: document.getElementById('hours-goal'),
-  saveGoalsBtn: document.getElementById('save-goals'),
+  goalsForm: document.getElementById('goalsForm'),
+  dailyIncomeGoal: document.getElementById('dailyIncomeGoal'),
+  monthlyTripsGoal: document.getElementById('monthlyTripsGoal'),
+  saveGoalsBtn: document.getElementById('saveGoalsBtn'),
+  clearDataBtn: document.getElementById('clearDataBtn'),
+  goalsStatus: document.getElementById('goalsStatus'),
 };
 
 // المراجع
-const goalsRef = doc(db, "settings", "goals");
-const tripsRef = collection(db, "trips");
 const shiftsRef = collection(db, "shifts");
+const tripsRef = collection(db, "trips");
 const statsRef = doc(db, "stats", "global");
-
-
-// -------------------- الوظائف المساعدة --------------------
-
-function safeShowLoader(message = 'جاري تنفيذ العملية...') {
-  try {
-    if (elements.loadingOverlay) {
-        elements.loadingOverlay.querySelector('p').textContent = message;
-        elements.loadingOverlay.style.display = 'flex';
-        elements.loadingOverlay.classList.add('show');
-    }
-  } catch (error) {
-    console.error('❌ خطأ في إظهار اللودر:', error);
-  }
-}
-
-function safeHideLoader() {
-  try {
-    if (elements.loadingOverlay) {
-      elements.loadingOverlay.style.display = 'none';
-      elements.loadingOverlay.classList.remove('show');
-    }
-  } catch (error) {
-    console.error('❌ خطأ في إخفاء اللودر:', error);
-  }
-}
-
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.innerHTML = `
-    <div class="notification-content">
-      <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : '💡'}</span>
-      <span class="notification-message">${message}</span>
-    </div>
-  `;
-  
-  // إضافة الأنماط (تأكد من وجودها في style.css)
-  notification.style.cssText = `
-    position: fixed;
-    top: 100px;
-    left: 20px;
-    right: 20px;
-    background: ${type === 'success' ? 'var(--green, #22c55e)' : type === 'error' ? 'var(--red, #ef4444)' : 'var(--orange, #f59e0b)'};
-    color: white;
-    padding: 16px 20px;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    z-index: 10000;
-    transform: translateY(-20px);
-    opacity: 0;
-    transition: all 0.3s ease;
-    font-weight: 600;
-    text-align: center;
-    backdrop-filter: blur(20px);
-  `;
-  
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.style.transform = 'translateY(0)';
-    notification.style.opacity = '1';
-  }, 10);
-
-  setTimeout(() => {
-    notification.style.transform = 'translateY(-20px)';
-    notification.style.opacity = '0';
-    notification.addEventListener('transitionend', () => notification.remove());
-  }, 5000);
-}
+const goalsDocRef = doc(db, "settings", "goals");
 
 
 // -------------------- إدارة الأهداف --------------------
 
 async function fetchGoals() {
+    safeShowLoader('جاري جلب الأهداف...');
     try {
-        const docSnap = await getDoc(goalsRef);
+        const docSnap = await getDoc(goalsDocRef);
         if (docSnap.exists()) {
             const goals = docSnap.data();
-            if (elements.incomeGoalInput) elements.incomeGoalInput.value = goals.dailyIncomeGoal || '';
-            if (elements.hoursGoalInput) elements.hoursGoalInput.value = goals.dailyHoursGoal || '';
+            if (elements.dailyIncomeGoal) elements.dailyIncomeGoal.value = goals.dailyIncomeGoal || '';
+            if (elements.monthlyTripsGoal) elements.monthlyTripsGoal.value = goals.monthlyTripsGoal || '';
+            
+            if (elements.goalsStatus) {
+                elements.goalsStatus.textContent = `آخر تحديث: ${new Date(goals.lastUpdated.toDate()).toLocaleTimeString()}`;
+            }
+        } else {
+            if (elements.goalsStatus) elements.goalsStatus.textContent = 'لم يتم تعيين أهداف بعد.';
         }
     } catch (error) {
         console.error("❌ خطأ في جلب الأهداف:", error);
+        showNotification("❌ فشل جلب الأهداف.", 'error');
     }
+    safeHideLoader();
 }
 
-async function saveGoals() {
-    safeShowLoader("جاري حفظ الأهداف...");
-    try {
-        const incomeGoal = parseFloat(elements.incomeGoalInput.value) || 0;
-        const hoursGoal = parseFloat(elements.hoursGoalInput.value) || 0;
-        
-        if (incomeGoal < 0 || hoursGoal < 0) {
-            showNotification("⚠️ يجب أن تكون الأهداف قيمة موجبة.", 'error');
-            safeHideLoader();
-            return;
-        }
+async function saveGoals(e) {
+    e.preventDefault();
+    
+    const dailyIncomeGoal = parseFloat(elements.dailyIncomeGoal.value) || 0;
+    const monthlyTripsGoal = parseInt(elements.monthlyTripsGoal.value) || 0;
 
-        await setDoc(goalsRef, {
-            dailyIncomeGoal: incomeGoal,
-            dailyHoursGoal: hoursGoal,
-            lastUpdated: new Date()
+    if (dailyIncomeGoal <= 0 && monthlyTripsGoal <= 0) {
+        showNotification("⚠️ يجب إدخال قيمة صحيحة لهدف الدخل أو هدف الرحلات.", 'info');
+        return;
+    }
+
+    safeShowLoader('جاري حفظ الأهداف...');
+    try {
+        await setDoc(goalsDocRef, {
+            dailyIncomeGoal: dailyIncomeGoal,
+            monthlyTripsGoal: monthlyTripsGoal,
+            lastUpdated: new Date(),
         }, { merge: true });
 
-        showNotification("✅ تم حفظ الأهداف بنجاح.", 'success');
+        showNotification("✅ تم حفظ الأهداف بنجاح!", 'success');
+        fetchGoals(); // إعادة جلب الأهداف لتحديث حالة التحديث
     } catch (error) {
         console.error("❌ خطأ في حفظ الأهداف:", error);
         showNotification("❌ فشل حفظ الأهداف.", 'error');
@@ -134,22 +74,23 @@ async function saveGoals() {
     safeHideLoader();
 }
 
+
 // -------------------- إدارة البيانات --------------------
 
-async function handleDeleteAllData() {
-    if (!confirm("⚠️ تحذير: هل أنت متأكد من حذف جميع بيانات الرحلات والشفتات والإحصائيات نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.")) return;
-
-    safeShowLoader("جاري حذف جميع البيانات...");
+async function clearAllData() {
+    if (!confirm("⚠️ تحذير: هل أنت متأكد تمامًا من مسح جميع بيانات الشفتات والرحلات والإحصائيات الكلية؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    
+    safeShowLoader('جاري مسح جميع البيانات...');
     try {
         const batch = writeBatch(db);
 
-        // 1. حذف جميع الرحلات
+        // 1. مسح الرحلات
         const tripsSnapshot = await getDocs(tripsRef);
         tripsSnapshot.docs.forEach(doc => {
             batch.delete(doc.ref);
         });
 
-        // 2. حذف جميع الشفتات
+        // 2. مسح الشفتات
         const shiftsSnapshot = await getDocs(shiftsRef);
         shiftsSnapshot.docs.forEach(doc => {
             batch.delete(doc.ref);
@@ -159,29 +100,28 @@ async function handleDeleteAllData() {
         batch.set(statsRef, {
             totalIncome: 0,
             totalDistance: 0,
-            totalTrips: 0
-        }, { merge: false }); // merge: false لإعادة الكتابة بالكامل
+            totalTrips: 0,
+        });
 
         await batch.commit();
-        
-        showNotification("✅ تم حذف جميع البيانات بنجاح وإعادة تعيين الإحصائيات.", 'success');
 
+        showNotification("✅ تم مسح جميع البيانات بنجاح!", 'success');
+        fetchGoals(); // لتحديث الواجهة
     } catch (error) {
-        console.error("❌ خطأ في حذف جميع البيانات:", error);
-        showNotification(`❌ فشل حذف البيانات: ${error.message || "خطأ غير معروف"}`, 'error');
+        console.error("❌ خطأ في مسح البيانات:", error);
+        showNotification(`❌ فشل مسح البيانات: ${error.message}`, 'error');
     }
     safeHideLoader();
 }
 
-// -------------------- وظائف التهيئة --------------------
+
+// -------------------- التهيئة --------------------
 
 function initializeSettings() {
-    // ربط الأحداث
-    if (elements.saveGoalsBtn) elements.saveGoalsBtn.addEventListener('click', saveGoals);
-    if (elements.deleteAllBtn) elements.deleteAllBtn.addEventListener('click', handleDeleteAllData);
-    
-    // جلب الأهداف
     fetchGoals();
+
+    if (elements.goalsForm) elements.goalsForm.addEventListener('submit', saveGoals);
+    if (elements.clearDataBtn) elements.clearDataBtn.addEventListener('click', clearAllData);
 }
 
 document.addEventListener('DOMContentLoaded', initializeSettings);
