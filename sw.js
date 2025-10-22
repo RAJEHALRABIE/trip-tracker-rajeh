@@ -1,4 +1,4 @@
-const CACHE_NAME = 'trip-tracker-v16'; // تم تغيير الإصدار هنا
+const CACHE_NAME = 'trip-tracker-v16'; 
 const urlsToCache = [
   '/',
   '/index.html',
@@ -17,20 +17,19 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
 ];
 
-// جميع الأيقونات الـ 25 (لضمان حفظها في الكاش)
-const allIcons = [
+// قائمة الأيقونات الأساسية الموجودة في المشروع (تمت مراجعتها)
+const essentialIcons = [
   'home.png', 'reports.png', 'analytics.png', 'settings.png',
-  'play.png', 'stop.png', 'car.png', 'flag.png', 'time.png',
+  'play.png', 'stop.png', 'car.png', 'finish-flag.png', 'time.png',
   'cash.png', 'distance.png', 'live.png', 'download.png',
   'edit.png', 'upload.png', 'delete.png', 'search.png',
   'details.png', 'stats-icon.png', 'global-stats.png',
   'calendar.png', 'clock.png', 'csv.png', 'pdf.png',
-  'icon-192.png', 'icon-512.png', 'finish-flag.png',
-  'dollar.png', 'target.png', 'save.png', 'map-pin.png', // تم إضافة أيقونات إضافية هنا
+  'icon-192.png', 'icon-512.png'
 ];
 
 // إضافة مسارات الأيقونات إلى الكاش
-urlsToCache.push(...allIcons.map(icon => `assets/icons/${icon}`));
+urlsToCache.push(...essentialIcons.map(icon => `assets/icons/${icon}`));
 
 // التثبيت
 self.addEventListener('install', (event) => {
@@ -61,7 +60,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// الجلب
+// الجلب (Fetch)
 self.addEventListener('fetch', (event) => {
   // تجاهل طلبات Firebase وخرائط Google
   if (event.request.url.includes('firebase') || 
