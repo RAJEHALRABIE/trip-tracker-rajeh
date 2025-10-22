@@ -44,7 +44,7 @@ body {
   padding-top: 80px;
   padding-bottom: 80px;
   min-height: 100vh;
-  transition: background 0.3s, color 0.3s; /* لتغيير سلس بين الأوضاع */
+  transition: background 0.3s, color 0.3s;
 }
 
 .main-content {
@@ -575,12 +575,6 @@ input:focus {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
-/* ------------------------------------- */
-/* الإشعارات (Notifications) - تمت إزالة الأنماط المضمنة */
-/* ------------------------------------- */
-/* الأنماط ستكون داخل ملف JS */
-
 
 /* ------------------------------------- */
 /* صفحة التقارير (Reports Page) */
