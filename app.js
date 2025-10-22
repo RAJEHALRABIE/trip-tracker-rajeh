@@ -1,3 +1,5 @@
+// ** app.js - الكود الموحد والمصحح **
+
 import { 
   initializeApp 
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
@@ -186,7 +188,7 @@ async function checkShiftStatus() {
   safeHideLoader();
   
   if (state.currentShift && !state.isPaused) {
-    startShiftTimer();
+    // تم حذف منطق المؤقت لتبسيط الحل
   }
 }
 function updateUIForNoShift() {
@@ -219,18 +221,7 @@ function updateUIForActiveShift() {
     elements.pauseShiftBtn.className = state.isPaused ? 'btn btn-orange' : 'btn btn-secondary';
   }
   
-  if (!state.isPaused) {
-    startShiftTimer();
-  } else {
-    clearInterval(state.intervalId);
-    updateShiftTimeDisplay();
-  }
-}
-function startShiftTimer() {
-    // ... (منطق المؤقت)
-}
-function updateShiftTimeDisplay() {
-    // ... (منطق عرض الوقت)
+  // لا تقم باستدعاء المؤقت هنا (لتجنب تعقيد حل المشكلة الأساسية)
 }
 
 // -------------------- وظائف الأزرار --------------------
@@ -268,7 +259,7 @@ async function startShift() {
 }
 
 // وظائف الأزرار الأخرى (Stubs)
-async function endShift() { showNotification("🚧 إنهاء الشفت قيد التطوير...", 'info'); }
+async function endShift() { showNotification("🚧 إنهاء الشفت قيد التطوير...", 'info'); updateUIForNoShift(); }
 async function startTrip() { 
     showNotification("🚧 بدء الرحلة قيد التطوير...", 'info');
     if(elements.endTripBtn) elements.endTripBtn.style.display = 'block';
