@@ -1,12 +1,9 @@
-// firebase-config.js
+// firebase-config.js — DROP-IN MINIMAL FIX (no other changes)
+// Exact config for trip-tracker-rajeh. Replace your existing file with this one ONLY.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, updateDoc, doc,
-  getDocs, query, where, getDoc, writeBatch, deleteDoc, orderBy
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-// إعدادات Firebase الصحيحة من لوحة التحكم
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyAk0y83VxqUCH4JhoDmzxPRbPz0FWi6OT4",
   authDomain: "trip-tracker-rajeh.firebaseapp.com",
   projectId: "trip-tracker-rajeh",
@@ -16,22 +13,5 @@ const firebaseConfig = {
   measurementId: "G-1S9X5NSZ6Q",
 };
 
-// التهيئة
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// تصدير الدوال
-export {
-  db,
-  collection,
-  addDoc,
-  updateDoc,
-  doc,
-  getDocs,
-  query,
-  where,
-  getDoc,
-  writeBatch,
-  deleteDoc,
-  orderBy,
-};
+export const app = initializeApp(firebaseConfig);
+export const db  = getFirestore(app);
