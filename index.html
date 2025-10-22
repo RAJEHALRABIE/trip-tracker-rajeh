@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Trip Tracker</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b4de6"> <meta name="description" content="تطبيق لتتبع الشِفتات والرحلات">
+  <link rel="apple-touch-icon" href="/assets/icons/icon-192.png">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <meta http-equiv="Permissions-Policy" content="geolocation=(self)">
+</head>
+<body>
+
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p>جاري التحميل...</p>
+  </div>
+
+  <header class="main-header">
+    <button id="menu-btn" class="menu-btn">☰</button>
+    <div class="header-title">
+      <h1>Trip Tracker</h1>
+      <span>تتبع رحلاتك بسهولة</span>
+    </div>
+    <div class="header-logo">
+      <img src="assets/logo.png" alt="Logo"> </div>
+  </header>
+
+  <main class="main-content">
+
+    <section class="controls-grid">
+      <div id="shift-card-container">
+        <div class="control-card active" id="start-shift-card">
+          <div class="card-icon"><img src="assets/icons/play.png" alt=""></div>
+          <h3>بدء شِفت</h3>
+          <p>ابدأ يوم العمل</p>
+        </div>
+        <div class="control-card inactive" id="end-shift-card" style="display: none;">
+          <div class="card-icon"><img src="assets/icons/stop.png" alt=""></div>
+          <h3>إنهاء شِفت</h3>
+          <p>أنهِ يوم العمل</p>
+          <span class="live-dot"></span>
+        </div>
+      </div>
+
+      <div id="trip-card-container">
+        <div class="control-card" id="start-trip-card" style="display: none;">
+          <div class="card-icon"><img src="assets/icons/map-pin.png" alt=""></div>
+          <h3>بدء رحلة</h3>
+          <p>رحلة جديدة</p>
+        </div>
+        <div class="control-card inactive" id="end-trip-card" style="display: none;">
+          <div class="card-icon"><img src="assets/icons/finish-flag.png" alt=""></div>
+          <h3>إنهاء رحلة</h3>
+          <p>اكمل الرحلة</p>
+          <span class="live-dot"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-card" id="current-shift-stats" style="display: none;">
+      <h2 class="card-title">
+        <img src="assets/icons/stats-icon.png" alt="">
+        معلومات الشفت الحالي
+      </h2>
+      <div class="stats-grid">
+        <div class="stat-item"><span>وقت الشفت:</span> <strong id="shift-time">00:00:00</strong></div>
+        <div class="stat-item"><span>وقت الرحلات:</span> <strong id="shift-trip-time">00:00:00</strong></div>
+        <div class="stat-item"><span>الدخل الحالي:</span> <strong id="current-income">0.00 ر.س</strong></div>
+        <div class="stat-item"><span>عدد الرحلات:</span> <strong id="trip-count">0</strong></div>
+        <div class="stat-item"><span>المسافة:</span> <strong id="total-distance">0.00 كم</strong></div>
+        <div class="stat-item"><span>متوسط الأجر/ساعة:</span> <strong id="avg-hourly">0.00 ر.س</strong></div>
+      </div>
+    </section>
+
+    <section class="stats-card" id="global-stats">
+      <h2 class="card-title">
+        <img src="assets/icons/global-stats.png" alt="">
+        الإحصائيات الكلية
+      </h2>
+      <div class="global-stats-grid">
+        <div class="global-stat-item">
+          <img src="assets/icons/calendar.png" alt="">
+          <p>عدد الشِفتات</p>
+          <strong id="total-shifts">0</strong>
+        </div>
+        <div class="global-stat-item">
+          <img src="assets/icons/clock.png" alt="">
+          <p>وقت الشِفتات</p>
+          <strong id="total-time">0:00</strong>
+        </div>
+        <div class="global-stat-item">
+          <img src="assets/icons/dollar.png" alt="">
+          <p>الدخل الكلي</p>
+          <strong id="total-income">0 ر.س</strong>
+        </div>
+        <div class="global-stat-item">
+          <img src="assets/icons/car.png" alt="">
+          <p>المسافة الكلية</p>
+          <strong id="total-distance-global">0 كم</strong>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item active">
+      <img src="assets/icons/home.png" alt="">
+      <span>الرئيسية</span>
+    </a>
+    <a href="reports.html" class="nav-item">
+      <img src="assets/icons/reports.png" alt="">
+      <span>التقارير</span>
+    </a>
+    <a href="analytics.html" class="nav-item">
+      <img src="assets/icons/analytics.png" alt="">
+      <span>تحليل</span>
+    </a>
+    <a href="settings.html" class="nav-item">
+      <img src="assets/icons/settings.png" alt="">
+      <span>الإعدادات</span>
+    </a>
+  </nav>
+
+  <div id="end-trip-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <span id="close-trip-modal" class="close-btn">&times;</span>
+      <h2>💰 إدخال قيمة الرحلة</h2>
+      <p>الرجاء إدخال المبلغ المحصّل لهذه الرحلة:</p>
+      <input type="number" id="trip-fare" inputmode="decimal" placeholder="0.00" step="0.01">
+      <button id="save-trip" class="btn btn-primary">حفظ الرحلة</button>
+    </div>
+  </div>
+
+  <div id="end-shift-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <span id="close-shift-modal" class="close-btn">&times;</span>
+      <h2>خيارات الشِفت</h2>
+      <p>هل تريد أخذ استراحة أم إنهاء الشِفت بالكامل؟</p>
+      <button id="pause-shift" class="btn btn-warning">⏸️ إيقاف مؤقت</button>
+      <button id="resume-shift" class="btn btn-primary" style="display: none;">▶️ استئناف الشِفت</button>
+      <button id="finish-shift" class="btn btn-danger">⏹️ إنهاء الشِفت نهائياً</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
+    // إعدادات Firebase الخاصة بك (من ملف 1.jpg)
+    const firebaseConfig = {
+      apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
+      authDomain: "trip-tracker-rajeh.firebaseapp.com",
+      projectId: "trip-tracker-rajeh",
+      storageBucket: "trip-tracker-rajeh.appspot.com",
+      messagingSenderId: "1025723412931",
+      appId: "1:1025723412931:web:53a9fa6e1a7a5f43a3dbec",
+      measurementId: "G-J1RBF8H0CC"
+    };
+
+    // تهيئة Firebase
+    const app = initializeApp(firebaseConfig);
+    // تصدير قاعدة البيانات لاستخدامها في app.js
+    export const db = getFirestore(app);
+  </script>
+
+  <script type="module" src="app.js"></script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDdiaPwWVaXO9FgOHCte2onZwpDOiFTF4c&libraries=geometry"></script>
+
+</body>
+</html>

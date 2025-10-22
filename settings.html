@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>الإعدادات - Trip Tracker</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6b4de6">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="loading-overlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p>جاري تنفيذ العملية...</p>
+  </div>
+
+  <header class="main-header">
+    <a href="index.html" class="header-back-btn">→</a>
+    <div class="header-title">
+      <h1>الإعدادات</h1>
+      <span>إدارة بيانات التطبيق</span>
+    </div>
+    <div class="header-logo">
+      <img src="assets/logo.png" alt="Logo">
+    </div>
+  </header
+
+  <main class="main-content">
+
+    <section class="stats-card settings-card">
+      <h2 class="card-title">
+        <img src="assets/icons/settings.png" alt="">
+        إدارة البيانات
+      </h2>
+      
+      <div class="setting-item">
+        <h3>استيراد بيانات (JSON)</h3>
+        <p>استعادة نسخة احتياطية من بياناتك.</p>
+        <button id="import-btn" class="btn btn-primary">
+          <img src="assets/icons/upload.png" alt=""> استيراد ملف
+        </button>
+        <input type="file" id="import-file-input" accept=".json" style="display: none;">
+      </div>
+
+      <div class="setting-item">
+        <h3>مسح كل البيانات (خطر)</h3>
+        <p>سيتم حذف جميع الشفتات والرحلات المسجلة نهائياً. لا يمكن التراجع عن هذا الإجراء.</p>
+        <button id="delete-all-btn" class="btn btn-danger">
+          <img src="assets/icons/delete.png" alt=""> مسح كل البيانات
+        </button>
+      </div>
+      
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item">
+      <img src="assets/icons/home.png" alt="">
+      <span>الرئيسية</span>
+    </a>
+    <a href="reports.html" class="nav-item">
+      <img src="assets/icons/reports.png" alt="">
+      <span>التقارير</span>
+    </a>
+    <a href="analytics.html" class="nav-item">
+      <img src="assets/icons/analytics.png" alt="">
+      <span>تحليل</span>
+    </a>
+    <a href="settings.html" class="nav-item active">
+      <img src="assets/icons/settings.png" alt="">
+      <span>الإعدادات</span>
+    </a>
+  </nav>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+    
+    // إعدادات Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyA4kGynSyqJmUHzHbuRNPWzDFWHGGT4",
+      authDomain: "trip-tracker-rajeh.firebaseapp.com",
+      projectId: "trip-tracker-rajeh",
+      storageBucket: "trip-tracker-rajeh.appspot.com",
+      messagingSenderId: "1025723412931",
+      appId: "1:1025723412931:web:53a9fa6e1a7a5f43a3dbec",
+      measurementId: "G-J1RBF8H0CC"
+    };
+    const app = initializeApp(firebaseConfig);
+    export const db = getFirestore(app);
+  </script>
+
+  <script type="module" src="settings.js"></script>
+
+</body>
+</html>
