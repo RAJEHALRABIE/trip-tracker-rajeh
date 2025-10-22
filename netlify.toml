@@ -1,7 +1,9 @@
+# netlify.toml
 [build]
   publish = "."
-  command = ""
+  command = ""  # مشروع ستاتيكي، لا حاجة لأمر بناء
 
+# دعم التوجيه للروابط العميقة (SPA/عدة صفحات ستاتيكية)
 [[redirects]]
   from = "/*"
   to = "/index.html"
