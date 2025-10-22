@@ -86,7 +86,8 @@ body {
     width: 20px;
     height: 20px;
     margin-left: 10px;
-    filter: brightness(0.5) sepia(1) hue-rotate(240deg) saturate(3); /* لتلوين الأيقونة */
+    /* هذا الفلتر يغير لون الأيقونة لتناسب اللون الأساسي */
+    filter: brightness(0.5) sepia(1) hue-rotate(240deg) saturate(3);
 }
 
 /* -------------------- Global Stats Grid -------------------- */
